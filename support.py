@@ -22,7 +22,10 @@ def loadImage(name, colorkey=None):
 
 
 def loadLevel(filename):
-    filename = 'data/level/' + filename
+    filename = os.path.join('data/level/', filename)
+    if not os.path.isfile(filename):
+        print(f"Файл с картой '{filename}' не найден")
+        sys.exit()
     with open(filename, 'r') as mapfile:
         levelmap = [line.strip() for line in mapfile]
     maxwidth = max(map(len, levelmap))
