@@ -1,6 +1,8 @@
 import pygame
 import os
 import sys
+TILEWIDTH = None
+TILEHEIGHT = None
 # здесь должны быть константы
 # возможно, понадобятся другие функции
 
