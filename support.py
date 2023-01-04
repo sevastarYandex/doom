@@ -1,12 +1,8 @@
 import pygame
 import os
 import sys
-TILEWIDTH = 10
-TILEHEIGHT = 10
-HEROWIDTH = 50
-HEROHEIGHT = 50
-# здесь должны быть константы
-# возможно, понадобятся другие функции
+TILEWIDTH = 80
+TILEHEIGHT = 80
 
 
 def loadImage(name, colorkey=None):

@@ -5,6 +5,7 @@ tilegroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
 tileimg = {'1': 'lava.png'} # тут картинки и их номера блоков
 playerimg = 'player.png'
+backimg = 'back.png'
 
 
 class Tile(pygame.sprite.Sprite):

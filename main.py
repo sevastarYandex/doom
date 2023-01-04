@@ -19,6 +19,7 @@ def action():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 show = False
+        screen.blit(pygame.transform.scale(support.loadImage(object.backimg), pygame.display.get_window_size()), (0, 0))
         object.allgroup.update()
         object.allgroup.draw(screen)
         pygame.display.flip()
