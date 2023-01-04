@@ -32,7 +32,7 @@ for i in range(len(lines)):
     for j in range(len(lines[i])):
         num = lines[i][j]
         if num != '\n':
-            Pixel(i, j, num)
+            Pixel(j, i, num)
 while 1:
     for i in pg.event.get():
         if i.type == pg.QUIT:
