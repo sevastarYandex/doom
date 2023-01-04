@@ -1,9 +1,10 @@
 import pygame
 import os
 import sys
-TILEWIDTH = None
-TILEHEIGHT = None
-WINDOWSIZE = pygame.display.get_window_size()
+TILEWIDTH = 10
+TILEHEIGHT = 10
+HEROWIDTH = 50
+HEROHEIGHT = 50
 # здесь должны быть константы
 # возможно, понадобятся другие функции
 
@@ -24,12 +25,12 @@ def loadImage(name, colorkey=None):
     return image
 
 
-def loadLevel(filename):
-    filename = os.path.join('data/level/', filename)
+def loadLevel(num):
+    filename = os.path.join('data/level/', str(num) + '.txt')
     if not os.path.isfile(filename):
         print(f"Файл с картой '{filename}' не найден")
         sys.exit()
     with open(filename, 'r') as mapfile:
         levelmap = [line.strip() for line in mapfile]
     maxwidth = max(map(len, levelmap))
-    return list(map(lambda x: x.ljust(maxwidth, '.'), levelmap))
+    return list(map(lambda x: x.ljust(maxwidth, ' '), levelmap))
