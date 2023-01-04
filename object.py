@@ -20,7 +20,7 @@ class Tile(pygame.sprite.Sprite):
         )
 
 
-class Hero(pygame.sprite.Sprite):
+class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(allgroup)
         self.add(herogroup)
@@ -33,26 +33,32 @@ class Hero(pygame.sprite.Sprite):
 
 class Back(pygame.sprite.Sprite):
     def __init__(self):
-        super().__init__(allgroup)
+        super().__init__()
         self.add(backgroup)
-        self.image = support.loadImage(backimg)
+        self.image = pygame.transform.scale(support.loadImage(backimg),
+                                            (support.WINDOWWIDTH, support.WINDOWHEIGHT))
         self.rect = self.image.get_rect().move(0, 0)
 
 
 class Camera:
     def __init__(self):
-        pass
+        self.dx = 0
+        self.dy = 0
 
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
 
-class Particle(pygame.sprite.Sprite):
-    def __init__(self):
-        pass
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - support.WINDOWWIDTH // 2)
+        self.dy = -(target.rect.y + target.rect.h // 2 - support.WINDOWHEIGHT // 2)
 
 
 class Shower:
     def __init__(self, levelnum=1):
         self.setLevel(levelnum)
         self.show = True
+        self.camera = Camera()
 
     def stop(self):
         self.show = False
@@ -65,10 +71,14 @@ class Shower:
         level = support.loadLevel(self.levelnum)
         self.player = generatelevel(level)
 
-    def update(self):
+    def move(self):
         allgroup.update()
 
     def draw(self, screen):
+        backgroup.draw(screen)
+        self.camera.update(self.player)
+        for sprite in allgroup:
+            self.camera.apply(sprite)
         allgroup.draw(screen)
 
 
@@ -78,7 +88,7 @@ def generatelevel(level):
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '@':
-                player = Hero(x, y)
+                player = Player(x, y)
             elif level[y][x] != ' ':
                 Tile(x, y, level[y][x])
     return player

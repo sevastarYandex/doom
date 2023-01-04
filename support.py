@@ -3,6 +3,7 @@ import os
 import sys
 TILEWIDTH = 80
 TILEHEIGHT = 80
+WINDOWWIDTH, WINDOWHEIGHT = None, None
 
 
 def loadImage(name, colorkey=None):
