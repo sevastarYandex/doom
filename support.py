@@ -3,6 +3,7 @@ import os
 import sys
 TILEWIDTH = None
 TILEHEIGHT = None
+WINDOWSIZE = pygame.display.get_window_size()
 # здесь должны быть константы
 # возможно, понадобятся другие функции
 

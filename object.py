@@ -2,6 +2,8 @@ import pygame
 import support
 allgroup = pygame.sprite.Group()
 tilegroup = pygame.sprite.Group()
+herogroup = pygame.sprite.Group()
+tileimg = {} # тут картинки и их номера блоков
 
 
 class Tile(pygame.sprite.Sprite):
@@ -16,12 +18,28 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Hero(pygame.sprite.Sprite):
-    pass
+    def __init__(self):
+        pass
+
+    def shoot(self):
+        pass
+
+    def fight(self):
+        pass
+
+    def update(self):
+        pass
 
 
 class Camera:
-    pass
+    def __init__(self):
+        pass
 
 
 class Particle(pygame.sprite.Sprite):
+    def __init__(self):
+        pass
+
+
+class Shower:
     pass
