@@ -1,63 +1,100 @@
+import sys
 import pygame
 import support
 allgroup = pygame.sprite.Group()
-tilegroup = pygame.sprite.Group()
-herogroup = pygame.sprite.Group()
-backgroup = pygame.sprite.Group()
 wallgroup = pygame.sprite.Group()
+entitygroup = pygame.sprite.Group()
+herogroup = pygame.sprite.Group()
+walltypes = ['2']
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
 playerimg = 'player.png'
+enemyimg = {'a': 'enemy.png'}
 backimg = 'back.png'
 
 
 class Tile(pygame.sprite.Sprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup)
-        self.add(tilegroup)
-        if type == '2':
+        if type in walltypes:
             self.add(wallgroup)
         self.image = support.loadImage(tileimg[type])
-        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
         )
 
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__(allgroup)
-        self.add(herogroup)
-        self.image = support.loadImage(playerimg)
-        self.mask = pygame.mask.from_surface(self.image)
+class Entity(pygame.sprite.Sprite):
+    def __init__(self, x, y, img):
+        super().__init__(allgroup, wallgroup, entitygroup)
+        self.image = support.loadImage(img)
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
         )
-        self.dx = support.DELTAX
-        self.dy = support.DELTAY
         self.x = self.rect.x
         self.y = self.rect.y
+        self.dx = 0
+        self.dy = 0
+        self.rx = 0
+        self.ry = 0
+        self.weapon = None
+
+    def move(self, dx, dy, check=True):
+        self.x += self.dx * dx
+        self.y += self.dy * dy
+        self.rect.x = self.x
+        self.rect.y = self.y
+        if not check:
+            return
+        if len(pygame.sprite.spritecollide(self, wallgroup, False)) > 1:
+            self.move(-dx, -dy, False)
+
+    def detect(self, target):
+        difx = abs(self.x - target.x)
+        dify = abs(self.y - target.y)
+        if difx > self.rx or dify > self.ry:
+            return
+        dx = (target.x > self.x) - (self.x > target.x)
+        dy = (target.y > self.y) - (self.y > target.y)
+        self.move(dx, 0)
+        self.move(0, dy)
+
+    def shoot(self, angle):
+        pass
 
     def update(self, key, *args):
         if key == support.MOVEKEY:
             self.move(*args)
+        if key == support.DETECTKEY:
+            self.detect(*args)
+        if key == support.SHOOTKEY:
+            self.shoot(*args)
 
-    def move(self, dx, dy):
-        self.x += dx * self.dx
-        self.y += dy * self.dy
-        self.rect.x = self.x
-        self.rect.y = self.y
-        for sprite in wallgroup:
-            if pygame.sprite.collide_mask(self, sprite):
-                self.move(-dx, -dy)
-                return
+
+class Player(Entity):
+    def __init__(self, x, y):
+        super().__init__(x, y, playerimg)
+        self.add(herogroup)
+        self.dx = support.PDX
+        self.dy = support.PDY
+
+    def detect(self, *args):
+        return
+
+
+class Enemy(Entity):
+    def __init__(self, x, y, type):
+        super().__init__(x, y, enemyimg[type])
+        self.dx = support.EDX
+        self.dy = support.EDY
+        self.rx = support.MXRX * support.TILEWIDTH
+        self.ry = support.MXRY * support.TILEHEIGHT
 
 
 class Back(pygame.sprite.Sprite):
     def __init__(self):
-        super().__init__()
-        self.add(backgroup)
+        super().__init__(allgroup)
         self.image = pygame.transform.scale(support.loadImage(backimg),
                                             (support.WINDOWWIDTH, support.WINDOWHEIGHT))
         self.rect = self.image.get_rect().move(0, 0)
@@ -71,7 +108,7 @@ class Camera:
     def apply(self, obj):
         obj.rect.x += self.dx
         obj.rect.y += self.dy
-        if isinstance(obj, Player):
+        if isinstance(obj, Entity):
             obj.x = obj.rect.x
             obj.y = obj.rect.y
 
@@ -100,23 +137,33 @@ class Shower:
     def move(self, dx, dy):
         herogroup.update(support.MOVEKEY, dx, dy)
 
+    def detect(self):
+        entitygroup.update(support.DETECTKEY, self.player)
+
     def draw(self, screen):
-        backgroup.draw(screen)
         self.camera.update(self.player)
         for sprite in allgroup:
+            if type(sprite) == Back:
+                continue
             self.camera.apply(sprite)
         allgroup.draw(screen)
-        herogroup.draw(screen)
 
 
 def generatelevel(level):
     player = None
+    px, py = None, None
     Back()
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x] == '@':
-                Tile(x, y, '1')
-                player = Player(x, y)
-            elif level[y][x] != ' ':
+            if level[y][x].isdigit():
                 Tile(x, y, level[y][x])
-    return player
+            else:
+                Tile(x, y, support.MAINTYPE)
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x].isalpha():
+                Enemy(x, y, level[y][x])
+            elif level[y][x] == '@':
+                px = x
+                py = y
+    return Player(px, py)
