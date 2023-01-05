@@ -17,6 +17,7 @@ class Tile(pygame.sprite.Sprite):
         if type == '2':
             self.add(wallgroup)
         self.image = support.loadImage(tileimg[type])
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
@@ -28,6 +29,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__(allgroup)
         self.add(herogroup)
         self.image = support.loadImage(playerimg)
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
@@ -46,8 +48,10 @@ class Player(pygame.sprite.Sprite):
         self.y += dy * self.dy
         self.rect.x = self.x
         self.rect.y = self.y
-        if pygame.sprite.spritecollideany(self, wallgroup):
-            self.move(-dx, -dy)
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(self, sprite):
+                self.move(-dx, -dy)
+                return
 
 
 class Back(pygame.sprite.Sprite):

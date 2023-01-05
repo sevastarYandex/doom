@@ -34,4 +34,4 @@ def loadLevel(num):
     with open(filename, 'r') as mapfile:
         levelmap = [line.strip() for line in mapfile]
     maxwidth = max(map(len, levelmap))
-    return list(map(lambda x: x.ljust(maxwidth, ' '), levelmap))
+    return levelmap

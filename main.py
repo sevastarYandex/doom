@@ -13,7 +13,8 @@ def main():
 
 def action():
     screen = pygame.display.set_mode()
-    support.WINDOWWIDTH, support.WINDOWHEIGHT = pygame.display.get_window_size()
+    support.WINDOWWIDTH, support.WINDOWHEIGHT = \
+        pygame.display.get_window_size()
     shower = object.Shower()
     clock = pygame.time.Clock()
     while shower.isgoing():
