@@ -7,7 +7,7 @@ entitygroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
 walltypes = ['2']
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
-playerimg = 'player.png'
+playerimg = {'@': 'player.png'}
 enemyimg = {'a': 'enemy.png'}
 backimg = 'back.png'
 
@@ -40,20 +40,24 @@ class Entity(pygame.sprite.Sprite):
         self.ry = 0
         self.weapon = None
 
-    def move(self, dx, dy, check=True):
+    def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
         self.y += self.dy * dy
         self.rect.x = self.x
         self.rect.y = self.y
         if not check:
             return
-        if len(pygame.sprite.spritecollide(self, wallgroup, False)) > 1:
+        collided = pygame.sprite.spritecollide(self, wallgroup, False)
+        collided = list(filter(lambda x: type(x) != good and x != self, collided))
+        if collided:
             self.move(-dx, -dy, False)
 
     def detect(self, target):
-        difx = abs(self.x - target.x)
-        dify = abs(self.y - target.y)
+        difx = abs(self.x - target.x) - support.TILEWIDTH
+        dify = abs(self.y - target.y) - support.TILEHEIGHT
         if difx > self.rx or dify > self.ry:
+            return
+        if difx < 0 and dify < 0:
             return
         dx = (target.x > self.x) - (self.x > target.x)
         dy = (target.y > self.y) - (self.y > target.y)
@@ -73,8 +77,8 @@ class Entity(pygame.sprite.Sprite):
 
 
 class Player(Entity):
-    def __init__(self, x, y):
-        super().__init__(x, y, playerimg)
+    def __init__(self, x, y, type):
+        super().__init__(x, y, playerimg[type])
         self.add(herogroup)
         self.dx = support.PDX
         self.dy = support.PDY
@@ -90,6 +94,9 @@ class Enemy(Entity):
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
         self.ry = support.MXRY * support.TILEHEIGHT
+
+    def move(self, dx, dy, check=True, good=None):
+        super().move(dx, dy, check, Enemy)
 
 
 class Back(pygame.sprite.Sprite):
@@ -151,19 +158,17 @@ class Shower:
 
 def generatelevel(level):
     player = None
-    px, py = None, None
     Back()
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x].isdigit():
+            if level[y][x] in tileimg:
                 Tile(x, y, level[y][x])
-            else:
+            elif level[y][x] != ' ':
                 Tile(x, y, support.MAINTYPE)
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x].isalpha():
+            if level[y][x] in enemyimg:
                 Enemy(x, y, level[y][x])
-            elif level[y][x] == '@':
-                px = x
-                py = y
-    return Player(px, py)
+            elif level[y][x] in playerimg:
+                player = Player(x, y, level[y][x])
+    return player

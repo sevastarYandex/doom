@@ -35,7 +35,7 @@ def action():
         shower.detect()
         shower.draw(screen)
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(support.FPS)
 
 
 if __name__ == "__main__":
