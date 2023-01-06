@@ -33,6 +33,7 @@ def action():
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             shower.move(0, -1)
         shower.detect()
+        shower.animate()
         shower.draw(screen)
         pygame.display.flip()
         clock.tick(support.FPS)

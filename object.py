@@ -25,20 +25,37 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Entity(pygame.sprite.Sprite):
-    def __init__(self, x, y, img):
+    def __init__(self, x, y, w, h, img):
         super().__init__(allgroup, wallgroup, entitygroup)
-        self.image = support.loadImage(img)
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.frames = []
+        self.frame = 0
+        self.cut(img)
+        self.image = self.frames[self.frame]
         self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
+            support.TILEWIDTH * self.x,
+            support.TILEHEIGHT * self.y
         )
-        self.x = self.rect.x
-        self.y = self.rect.y
         self.dx = 0
         self.dy = 0
         self.rx = 0
         self.ry = 0
         self.weapon = None
+
+    def cut(self, img):
+        sheet = support.loadImage(img)
+        cols = sheet.get_width() // self.w
+        rows = sheet.get_height() // self.h
+        self.frames = [sheet.subsurface(
+            pygame.Rect((self.w * (ind % cols), self.h * (ind // cols)), (self.w, self.h)))
+        for ind in range(cols * rows)]
+
+    def animate(self):
+        self.frame = (self.frame + 1) % len(self.frames)
+        self.image = self.frames[self.frame]
 
     def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
@@ -68,6 +85,8 @@ class Entity(pygame.sprite.Sprite):
         pass
 
     def update(self, key, *args):
+        if key == support.ANIMATEKEY:
+            self.animate(*args)
         if key == support.MOVEKEY:
             self.move(*args)
         if key == support.DETECTKEY:
@@ -78,7 +97,9 @@ class Entity(pygame.sprite.Sprite):
 
 class Player(Entity):
     def __init__(self, x, y, type):
-        super().__init__(x, y, playerimg[type])
+        super().__init__(x, y,
+                         support.TILEWIDTH, support.TILEHEIGHT,
+                         playerimg[type])
         self.add(herogroup)
         self.dx = support.PDX
         self.dy = support.PDY
@@ -89,7 +110,9 @@ class Player(Entity):
 
 class Enemy(Entity):
     def __init__(self, x, y, type):
-        super().__init__(x, y, enemyimg[type])
+        super().__init__(x, y,
+                         support.TILEWIDTH, support.TILEHEIGHT,
+                         enemyimg[type])
         self.dx = support.EDX
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
@@ -140,6 +163,9 @@ class Shower:
         self.levelnum = levelnum
         level = support.loadLevel(self.levelnum)
         self.player = generatelevel(level)
+
+    def animate(self):
+        entitygroup.update(support.ANIMATEKEY)
 
     def move(self, dx, dy):
         herogroup.update(support.MOVEKEY, dx, dy)
