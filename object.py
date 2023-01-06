@@ -5,7 +5,6 @@ allgroup = pygame.sprite.Group()
 wallgroup = pygame.sprite.Group()
 entitygroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
-walltypes = ['2']
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
 playerimg = {'@': 'player.png'}
 enemyimg = {'a': 'enemy.png'}
@@ -15,7 +14,7 @@ backimg = 'back.png'
 class Tile(pygame.sprite.Sprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup)
-        if type in walltypes:
+        if type in support.WALLTYPES:
             self.add(wallgroup)
         self.image = support.loadImage(tileimg[type])
         self.rect = self.image.get_rect().move(
