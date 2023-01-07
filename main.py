@@ -18,7 +18,6 @@ def action():
         pygame.display.get_window_size()
     shower = object.Shower()
     clock = pygame.time.Clock()
-    animation = 0
     while shower.isgoing():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -34,13 +33,10 @@ def action():
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             shower.move(0, -1)
         shower.detect()
-        if not animation:
-            shower.animate()
+        shower.animate()
         shower.draw(screen)
         pygame.display.flip()
         clock.tick(support.FPS)
-        animation += 1
-        animation %= support.ANIMATEREGULAR
 
 
 if __name__ == "__main__":

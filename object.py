@@ -150,6 +150,7 @@ class Shower:
     def __init__(self, levelnum=1):
         self.setLevel(levelnum)
         self.show = True
+        self.upd = 0
         self.camera = Camera()
 
     def stop(self):
@@ -164,7 +165,10 @@ class Shower:
         self.player = generatelevel(level)
 
     def animate(self):
-        entitygroup.update(support.ANIMATEKEY)
+        if not self.upd:
+            entitygroup.update(support.ANIMATEKEY)
+        self.upd += 1
+        self.upd %= support.ANIMATEREGULAR
 
     def move(self, dx, dy):
         herogroup.update(support.MOVEKEY, dx, dy)
