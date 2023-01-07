@@ -12,6 +12,8 @@ playerimg = {'@': 'player.png'}
 enemyimg = {'a': 'enemy.png'}
 bulletimg = {'1': 'enemy.png', '2': 'enemy.png',
              '3': 'enemy.png', '4': 'enemy.png'}
+weaponimg = {'1': 'enemy.png', '2': 'enemy.png',
+             '3': 'enemy.png', '4': 'enemy.png'}
 backimg = 'back.png'
 
 
@@ -31,6 +33,7 @@ class Tile(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, mxr, dmg, sin, cos, type):
         super().__init__(allgroup, bulletgroup)
+        self.dist = 0
         self.x = x
         self.y = y
         self.shift = 0
@@ -47,10 +50,13 @@ class Bullet(pygame.sprite.Sprite):
         self.y += self.shift * self.sin
         self.rect.x = self.x
         self.rect.y = self.y
+        self.dist += self.shift
         for sprite in wallgroup:
             if pygame.sprite.collide_mask(sprite, self):
                 self.hurt()
                 return
+        if self.dist >= self.maxrange:
+            self.kill()
 
     def hurt(self, target):
         # дописать
@@ -58,8 +64,50 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Weapon(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__(allgroup, )
+    def __init__(self, x, y, type):
+        super().__init__(allgroup, weapongroup)
+        self.bulletdmg = 0 # насколько дамажит пуля
+        self.bulletmxr = 0 # насколько далеко летит пуля
+        self.bullettype = 0 # тип пули
+        self.bulletshift = 0 # сколько пролетает пуля за единицу времени
+        self.bulletpershot = 0 # пуль за выстрел
+        self.ammo = 0 # сколько магазинов
+        self.store = 0 # максимальное кол-во пуль в магазине
+        self.nowstore = 0 # сколько пуль сейчас в магазине
+        self.shoottime = 0 # минимальная разница по времени между выстрелами (в мс)
+        self.reloadtime = 0 # время перезарядки (в мс)
+        self.clock = pygame.time.Clock()
+        self.beforenextshoot = 0 # сколько ещё нельзя стрелять (в мс)
+        self.image = support.loadImage(weaponimg[type])
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+
+    def shoot(self, pos):
+        amount = min(self.nowstore, self.bulletpershot)
+        return amount
+        # дописать
+
+    def reload(self):
+        self.beforenextshoot -= self.clock.tick()
+        if self.beforenextshoot > 0:
+            return False
+        # тут музончик
+        if not self.ammo:
+            self.nowstore = 0
+            return True
+        self.ammo -= 1
+        self.nowstore = self.store
+        self.beforenextshoot = self.reloadtime
+        return True
+
+    def click(self, pos):
+        self.beforenextshoot -= self.clock.tick()
+        if self.beforenextshoot <= 0:
+            self.shoot(pos)
+            self.beforenextshoot = self.shoottime
 
 
 class Entity(pygame.sprite.Sprite):
