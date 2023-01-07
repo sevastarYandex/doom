@@ -10,9 +10,9 @@ weapongroup = pygame.sprite.Group()
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
 playerimg = {'@': 'player.png'}
 enemyimg = {'a': 'enemy.png'}
-bulletimg = {'1': 'enemy.png', '2': 'enemy.png',
+bulletimg = {'1': 'wall.png', '2': 'enemy.png',
              '3': 'enemy.png', '4': 'enemy.png'}
-weaponimg = {'1': 'enemy.png', '2': 'enemy.png',
+weaponimg = {'1': 'wall.png', '2': 'enemy.png',
              '3': 'enemy.png', '4': 'enemy.png'}
 backimg = 'back.png'
 emptyimg = 'empty.png'
@@ -35,12 +35,12 @@ class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, sin, cos, type):
         super().__init__(allgroup, bulletgroup)
         self.dist = 0
-        self.x = x
-        self.y = y
-        self.shift = 0
+        self.shift = 3
+        self.x = x + 100 * self.shift * cos
+        self.y = y + 100 * self.shift * sin
         self.sin = sin
         self.cos = cos
-        self.maxrange = 0
+        self.maxrange = 500
         self.damage = 0
         self.image = support.loadImage(bulletimg[type])
         self.mask = pygame.mask.from_surface(self.image)
@@ -54,7 +54,7 @@ class Bullet(pygame.sprite.Sprite):
         self.dist += self.shift
         for sprite in wallgroup:
             if pygame.sprite.collide_mask(sprite, self):
-                self.hurt()
+                self.hurt(sprite)
                 return
         if self.dist >= self.maxrange:
             self.kill()
@@ -67,17 +67,15 @@ class Bullet(pygame.sprite.Sprite):
 class Weapon(pygame.sprite.Sprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup, weapongroup)
-        self.bulletdmg = 0 # насколько дамажит пуля
-        self.bulletmxr = 0 # насколько далеко летит пуля
-        self.bullettype = 0 # тип пули
-        self.bulletshift = 0 # сколько пролетает пуля за единицу времени
-        self.bulletpershot = 0 # пуль за выстрел
+        self.friend = None
+        self.bullettype = '1' # тип пули
+        self.bulletpershot = 1 # пуль за выстрел
         self.scatter = 0 # разброс
-        self.ammo = 0 # сколько магазинов
-        self.store = 0 # максимальное кол-во пуль в магазине
+        self.ammo = 3 # сколько магазинов
+        self.store = 5 # максимальное кол-во пуль в магазине
         self.nowstore = 0 # сколько пуль сейчас в магазине
-        self.shoottime = 0 # минимальная разница по времени между выстрелами (в мс)
-        self.reloadtime = 0 # время перезарядки (в мс)
+        self.shoottime = 400 # минимальная разница по времени между выстрелами (в мс)
+        self.reloadtime = 1000 # время перезарядки (в мс)
         self.clock = pygame.time.Clock()
         self.beforenextshoot = 0 # сколько ещё нельзя стрелять (в мс)
         self.image = support.loadImage(weaponimg[type])
@@ -87,11 +85,13 @@ class Weapon(pygame.sprite.Sprite):
             support.TILEHEIGHT * y
         )
         self.host = None
+        self.reload()
 
     def sethost(self, host):
         self.image = support.loadImage(emptyimg)
-        self.rect.move(host.x, host.y)
+        self.rect = self.rect.move(host.x - self.rect.x, host.y - self.rect.y)
         self.host = host
+        self.friend = type(self.host)
 
     def update(self):
         if self.host is None:
@@ -100,9 +100,10 @@ class Weapon(pygame.sprite.Sprite):
 
     def shoot(self, pos):
         amount = min(self.nowstore, self.bulletpershot)
-        if not amount:
+        if amount <= 0:
             return False
         # тоже музон нужен
+        self.nowstore -= amount
         cx = self.rect.x + self.rect.w // 2
         cy = self.rect.y + self.rect.h // 2
         px, py = pos
