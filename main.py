@@ -15,7 +15,7 @@ def action():
     screen = pygame.display.set_mode()
     pygame.display.set_caption('DOOM: SARATOV EDITION')
     support.WINDOWWIDTH, support.WINDOWHEIGHT = \
-        pygame.display.get_window_size()
+        screen.get_size()
     shower = object.Shower()
     clock = pygame.time.Clock()
     weapon = object.Weapon(5, 5, '1')
@@ -40,6 +40,7 @@ def action():
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             shower.move(0, -1)
         object.bulletgroup.update()
+        weapon.update()
         shower.detect()
         shower.animate()
         shower.draw(screen)

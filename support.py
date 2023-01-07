@@ -23,14 +23,18 @@ DETECTKEY = 2
 SHOOTKEY = 3
 
 
-def calculateDegree(cx, cy, px, py, sc):
-    px -= cx
-    py -= cy
+def calculateDegree(px, py, sc):
     hyp = (px ** 2 + py ** 2) ** 0.5
+    if not hyp:
+        return 0, 1
     sin = py / hyp
     rad = math.asin(sin)
     rad += random.randint(-sc, sc)
-    return math.sin(rad), math.cos(rad)
+    sin = math.sin(rad)
+    cos = math.cos(rad)
+    if px < 0:
+        cos = -cos
+    return sin, cos
 
 
 def loadImage(name, colorkey=None):

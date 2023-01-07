@@ -18,7 +18,21 @@ backimg = 'back.png'
 emptyimg = 'empty.png'
 
 
-class Tile(pygame.sprite.Sprite):
+class FloatSprite(pygame.sprite.Sprite):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.x, self.y = 0, 0
+
+    def setxy(self):
+        self.x = self.rect.x
+        self.y = self.rect.y
+
+    def syncxy(self):
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+
+class Tile(FloatSprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup)
         if type in support.WALLTYPES:
@@ -29,32 +43,34 @@ class Tile(pygame.sprite.Sprite):
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
         )
+        self.setxy()
 
 
-class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, sin, cos, type):
+class Bullet(FloatSprite):
+    def __init__(self, x, y, sin, cos, friend, type):
         super().__init__(allgroup, bulletgroup)
         self.dist = 0
-        self.shift = 3
-        self.x = x + 100 * self.shift * cos
-        self.y = y + 100 * self.shift * sin
+        self.shift = 10
         self.sin = sin
         self.cos = cos
         self.maxrange = 500
         self.damage = 0
         self.image = support.loadImage(bulletimg[type])
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(self.x, self.y)
+        self.rect = self.image.get_rect().move(x, y)
+        self.rect = self.rect.move(-self.rect.w // 2, -self.rect.h // 2)
+        self.friend = friend
+        self.setxy()
 
     def update(self):
         self.x += self.shift * self.cos
         self.y += self.shift * self.sin
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.syncxy()
         self.dist += self.shift
         for sprite in wallgroup:
-            if pygame.sprite.collide_mask(sprite, self):
+            if pygame.sprite.collide_mask(sprite, self) and type(sprite) != self.friend:
                 self.hurt(sprite)
+                self.kill()
                 return
         if self.dist >= self.maxrange:
             self.kill()
@@ -64,15 +80,15 @@ class Bullet(pygame.sprite.Sprite):
         self.kill()
 
 
-class Weapon(pygame.sprite.Sprite):
+class Weapon(FloatSprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup, weapongroup)
         self.friend = None
         self.bullettype = '1' # тип пули
         self.bulletpershot = 1 # пуль за выстрел
         self.scatter = 0 # разброс
-        self.ammo = 3 # сколько магазинов
-        self.store = 5 # максимальное кол-во пуль в магазине
+        self.ammo = 10 # сколько магазинов
+        self.store = 10 # максимальное кол-во пуль в магазине
         self.nowstore = 0 # сколько пуль сейчас в магазине
         self.shoottime = 400 # минимальная разница по времени между выстрелами (в мс)
         self.reloadtime = 1000 # время перезарядки (в мс)
@@ -86,17 +102,23 @@ class Weapon(pygame.sprite.Sprite):
         )
         self.host = None
         self.reload()
+        self.setxy()
 
     def sethost(self, host):
         self.image = support.loadImage(emptyimg)
-        self.rect = self.rect.move(host.x - self.rect.x, host.y - self.rect.y)
+        self.rect = self.rect.move(
+            host.x - self.x,
+            host.y - self.y
+        )
         self.host = host
         self.friend = type(self.host)
 
     def update(self):
         if self.host is None:
             return
-        self.rect.move(self.host.x, self.host.y)
+        self.x = self.host.x
+        self.y = self.host.y
+        self.syncxy()
 
     def shoot(self, pos):
         amount = min(self.nowstore, self.bulletpershot)
@@ -104,12 +126,14 @@ class Weapon(pygame.sprite.Sprite):
             return False
         # тоже музон нужен
         self.nowstore -= amount
-        cx = self.rect.x + self.rect.w // 2
-        cy = self.rect.y + self.rect.h // 2
+        cx = self.x + self.rect.w // 2
+        cy = self.y + self.rect.h // 2
         px, py = pos
+        px -= cx
+        py -= cy
         for _ in range(amount):
-            sin, cos = support.calculateDegree(cx, cy, px, py, self.scatter)
-            Bullet(cx, cy, sin, cos, self.bullettype)
+            sin, cos = support.calculateDegree(px, py, self.scatter)
+            Bullet(cx, cy, sin, cos, self.friend, self.bullettype)
         return True
 
     def reload(self):
@@ -134,11 +158,9 @@ class Weapon(pygame.sprite.Sprite):
         return False
 
 
-class Entity(pygame.sprite.Sprite):
+class Entity(FloatSprite):
     def __init__(self, x, y, w, h, img):
         super().__init__(allgroup, wallgroup, entitygroup)
-        self.x = x
-        self.y = y
         self.w = w
         self.h = h
         self.frames = []
@@ -147,9 +169,10 @@ class Entity(pygame.sprite.Sprite):
         self.image = self.frames[self.frame]
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * self.x,
-            support.TILEHEIGHT * self.y
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
         )
+        self.setxy()
         self.dx = 0
         self.dy = 0
         self.rx = 0
@@ -172,8 +195,7 @@ class Entity(pygame.sprite.Sprite):
     def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
         self.y += self.dy * dy
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.syncxy()
         if not check:
             return
         for sprite in wallgroup:
@@ -235,12 +257,15 @@ class Enemy(Entity):
         super().move(dx, dy, check, Enemy)
 
 
-class Back(pygame.sprite.Sprite):
+class Back(FloatSprite):
     def __init__(self):
         super().__init__(allgroup)
         self.image = pygame.transform.scale(support.loadImage(backimg),
                                             (support.WINDOWWIDTH, support.WINDOWHEIGHT))
-        self.rect = self.image.get_rect().move(0, 0)
+        self.rect = self.image.get_rect()
+        self.rect.x = 0
+        self.rect.y = 0
+        self.setxy()
 
 
 class Camera:
@@ -249,11 +274,9 @@ class Camera:
         self.dy = 0
 
     def apply(self, obj):
-        obj.rect.x += self.dx
-        obj.rect.y += self.dy
-        if isinstance(obj, Entity):
-            obj.x = obj.rect.x
-            obj.y = obj.rect.y
+        obj.x += self.dx
+        obj.y += self.dy
+        obj.syncxy()
 
     def update(self, target):
         self.dx = -(target.rect.x + target.rect.w // 2 - support.WINDOWWIDTH // 2)
