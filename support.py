@@ -1,6 +1,8 @@
 import pygame
 import os
 import sys
+import math
+import random
 TILEWIDTH = 80
 TILEHEIGHT = 80
 WINDOWWIDTH = None
@@ -19,6 +21,16 @@ ANIMATEKEY = 0
 MOVEKEY = 1
 DETECTKEY = 2
 SHOOTKEY = 3
+
+
+def calculateDegree(cx, cy, px, py, sc):
+    px -= cx
+    py -= cy
+    hyp = (px ** 2 + py ** 2) ** 0.5
+    sin = py / hyp
+    rad = math.asin(sin)
+    rad += random.randint(-sc, sc)
+    return math.sin(rad), math.cos(rad)
 
 
 def loadImage(name, colorkey=None):

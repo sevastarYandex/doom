@@ -15,6 +15,7 @@ bulletimg = {'1': 'enemy.png', '2': 'enemy.png',
 weaponimg = {'1': 'enemy.png', '2': 'enemy.png',
              '3': 'enemy.png', '4': 'enemy.png'}
 backimg = 'back.png'
+emptyimg = 'empty.png'
 
 
 class Tile(pygame.sprite.Sprite):
@@ -31,7 +32,7 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, mxr, dmg, sin, cos, type):
+    def __init__(self, x, y, sin, cos, type):
         super().__init__(allgroup, bulletgroup)
         self.dist = 0
         self.x = x
@@ -39,8 +40,8 @@ class Bullet(pygame.sprite.Sprite):
         self.shift = 0
         self.sin = sin
         self.cos = cos
-        self.maxrange = mxr
-        self.damage = dmg
+        self.maxrange = 0
+        self.damage = 0
         self.image = support.loadImage(bulletimg[type])
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(self.x, self.y)
@@ -71,6 +72,7 @@ class Weapon(pygame.sprite.Sprite):
         self.bullettype = 0 # тип пули
         self.bulletshift = 0 # сколько пролетает пуля за единицу времени
         self.bulletpershot = 0 # пуль за выстрел
+        self.scatter = 0 # разброс
         self.ammo = 0 # сколько магазинов
         self.store = 0 # максимальное кол-во пуль в магазине
         self.nowstore = 0 # сколько пуль сейчас в магазине
@@ -84,11 +86,30 @@ class Weapon(pygame.sprite.Sprite):
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
         )
+        self.host = None
+
+    def sethost(self, host):
+        self.image = support.loadImage(emptyimg)
+        self.rect.move(host.x, host.y)
+        self.host = host
+
+    def update(self):
+        if self.host is None:
+            return
+        self.rect.move(self.host.x, self.host.y)
 
     def shoot(self, pos):
         amount = min(self.nowstore, self.bulletpershot)
-        return amount
-        # дописать
+        if not amount:
+            return False
+        # тоже музон нужен
+        cx = self.rect.x + self.rect.w // 2
+        cy = self.rect.y + self.rect.h // 2
+        px, py = pos
+        for _ in range(amount):
+            sin, cos = support.calculateDegree(cx, cy, px, py, self.scatter)
+            Bullet(cx, cy, sin, cos, self.bullettype)
+        return True
 
     def reload(self):
         self.beforenextshoot -= self.clock.tick()
@@ -108,6 +129,8 @@ class Weapon(pygame.sprite.Sprite):
         if self.beforenextshoot <= 0:
             self.shoot(pos)
             self.beforenextshoot = self.shoottime
+            return True
+        return False
 
 
 class Entity(pygame.sprite.Sprite):
@@ -121,6 +144,7 @@ class Entity(pygame.sprite.Sprite):
         self.frame = 0
         self.cut(img)
         self.image = self.frames[self.frame]
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * self.x,
             support.TILEHEIGHT * self.y
@@ -142,6 +166,7 @@ class Entity(pygame.sprite.Sprite):
     def animate(self):
         self.frame = (self.frame + 1) % len(self.frames)
         self.image = self.frames[self.frame]
+        self.mask = pygame.mask.from_surface(self.image)
 
     def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
@@ -150,10 +175,11 @@ class Entity(pygame.sprite.Sprite):
         self.rect.y = self.y
         if not check:
             return
-        collided = pygame.sprite.spritecollide(self, wallgroup, False)
-        collided = list(filter(lambda x: type(x) != good and x != self, collided))
-        if collided:
-            self.move(-dx, -dy, False)
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(self, sprite):
+                if type(sprite) != good and sprite != self:
+                    self.move(-dx, -dy, False)
+                    return
 
     def detect(self, target):
         difx = abs(self.x - target.x) - support.TILEWIDTH
