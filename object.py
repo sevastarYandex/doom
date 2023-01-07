@@ -5,9 +5,13 @@ allgroup = pygame.sprite.Group()
 wallgroup = pygame.sprite.Group()
 entitygroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
+bulletgroup = pygame.sprite.Group()
+weapongroup = pygame.sprite.Group()
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
 playerimg = {'@': 'player.png'}
 enemyimg = {'a': 'enemy.png'}
+bulletimg = {'1': 'enemy.png', '2': 'enemy.png',
+             '3': 'enemy.png', '4': 'enemy.png'}
 backimg = 'back.png'
 
 
@@ -17,10 +21,45 @@ class Tile(pygame.sprite.Sprite):
         if type in support.WALLTYPES:
             self.add(wallgroup)
         self.image = support.loadImage(tileimg[type])
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
         )
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, mxr, dmg, sin, cos, type):
+        super().__init__(allgroup, bulletgroup)
+        self.x = x
+        self.y = y
+        self.shift = 0
+        self.sin = sin
+        self.cos = cos
+        self.maxrange = mxr
+        self.damage = dmg
+        self.image = support.loadImage(bulletimg[type])
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect().move(self.x, self.y)
+
+    def update(self):
+        self.x += self.shift * self.cos
+        self.y += self.shift * self.sin
+        self.rect.x = self.x
+        self.rect.y = self.y
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(sprite, self):
+                self.hurt()
+                return
+
+    def hurt(self, target):
+        # дописать
+        self.kill()
+
+
+class Weapon(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(allgroup, )
 
 
 class Entity(pygame.sprite.Sprite):
