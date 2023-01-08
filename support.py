@@ -8,7 +8,7 @@ TILEHEIGHT = 80
 WINDOWWIDTH = None
 WINDOWHEIGHT = None
 FPS = 72
-ANIMATEREGULAR = 5
+ANIMATEREGULAR = 30
 PDX = 8
 PDY = 8
 EDX = 4
@@ -29,7 +29,8 @@ def calculateDegree(px, py, sc):
         return 0, 1
     sin = py / hyp
     rad = math.asin(sin)
-    rad += random.randint(-sc, sc)
+    sc /= 180 / math.pi
+    rad += (random.random() - 0.5) * 2 * sc
     sin = math.sin(rad)
     cos = math.cos(rad)
     if px < 0:

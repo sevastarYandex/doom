@@ -18,7 +18,7 @@ def action():
         screen.get_size()
     shower = object.Shower()
     clock = pygame.time.Clock()
-    weapon = object.Weapon(5, 5, '1')
+    weapon = object.Weapon(5, 5, 'z')
     weapon.sethost(shower.player)
     while shower.isgoing():
         for event in pygame.event.get():

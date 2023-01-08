@@ -10,10 +10,13 @@ weapongroup = pygame.sprite.Group()
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
 playerimg = {'@': 'player.png'}
 enemyimg = {'a': 'enemy.png'}
-bulletimg = {'1': 'wall.png', '2': 'enemy.png',
-             '3': 'enemy.png', '4': 'enemy.png'}
-weaponimg = {'1': 'wall.png', '2': 'enemy.png',
-             '3': 'enemy.png', '4': 'enemy.png'}
+bulletimg = {'z': 'bullet.png'}
+bulletspec = {'z': (40, 600, 20)}
+# скорость, расстояние и урон (в хп)
+weaponimg = {'z': 'wall.png'}
+weaponspec = {'z': (1, 3, 3, 30, 50, 1500)}
+# пуль за выстрел, разброс в градусах, количество магазинов и их ёмкость
+# скорострельность и время перезарядки
 backimg = 'back.png'
 emptyimg = 'empty.png'
 
@@ -50,11 +53,9 @@ class Bullet(FloatSprite):
     def __init__(self, x, y, sin, cos, friend, type):
         super().__init__(allgroup, bulletgroup)
         self.dist = 0
-        self.shift = 10
         self.sin = sin
         self.cos = cos
-        self.maxrange = 500
-        self.damage = 0
+        self.shift, self.maxrange, self.damage = bulletspec[type]
         self.image = support.loadImage(bulletimg[type])
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(x, y)
@@ -84,16 +85,12 @@ class Weapon(FloatSprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup, weapongroup)
         self.friend = None
-        self.bullettype = '1' # тип пули
-        self.bulletpershot = 1 # пуль за выстрел
-        self.scatter = 0 # разброс
-        self.ammo = 10 # сколько магазинов
-        self.store = 10 # максимальное кол-во пуль в магазине
         self.nowstore = 0 # сколько пуль сейчас в магазине
-        self.shoottime = 400 # минимальная разница по времени между выстрелами (в мс)
-        self.reloadtime = 1000 # время перезарядки (в мс)
-        self.clock = pygame.time.Clock()
         self.beforenextshoot = 0 # сколько ещё нельзя стрелять (в мс)
+        self.bullettype = type # тип пули
+        self.bulletpershot, self.scatter, self.ammo, \
+        self.store, self.shoottime, self.reloadtime = weaponspec[type]
+        self.clock = pygame.time.Clock()
         self.image = support.loadImage(weaponimg[type])
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
@@ -156,6 +153,22 @@ class Weapon(FloatSprite):
             self.beforenextshoot = self.shoottime
             return True
         return False
+
+
+class Knife(Weapon):
+    pass
+
+
+class Pistol(Weapon):
+    pass
+
+
+class Automat(Weapon):
+    pass
+
+
+class Shotgun(Weapon):
+    pass
 
 
 class Entity(FloatSprite):
