@@ -12,7 +12,8 @@ playerimg = {support.KNIFE: 'playerknife.png',
              support.PISTOL: 'playerpistol.png',
              support.AUTOMAT: 'playerautomat.png',
              support.SHOTGUN: 'playershotgun.png'}
-enemyimg = {'a': 'enemy.png'}
+enemyimg = {support.KNIFE: 'enemy.png'}
+enemyweapon = {'a': support.KNIFE}
 bulletimg = {'z': 'knife.png',
              'y': 'bullet.png',
              'x': 'bullet.png',
@@ -127,6 +128,13 @@ class Weapon(FloatSprite):
             self.nowstore = self.store
             self.ammo = 0
 
+    def merge(self, other):
+        host1, host2 = self.host, other.host
+        self.sethost(host2)
+        other.sethost(host1)
+        self.syncxy()
+        other.syncxy()
+
     def getammo(self, ammo):
         if self.weapontype == support.KNIFE:
             self.nowstore += ammo
@@ -147,26 +155,29 @@ class Weapon(FloatSprite):
             self.weapontype = support.SHOTGUN
 
     def sethost(self, host):
-        self.image = support.loadImage(emptyimg)
-        self.rect = self.rect.move(
-            host.x - self.x,
-            host.y - self.y
-        )
+        if isinstance(host, Entity):
+            self.rect = self.rect.move(
+                host.x - self.x,
+                host.y - self.y
+            )
+            self.image = support.loadImage(emptyimg)
+        else:
+            self.image = support.loadImage(weaponimg[self.bullettype])
+        self.setmask()
         self.host = host
         self.friend = type(self.host)
 
     def update(self):
         if self.host is None:
-            return False
+            return
         self.x = self.host.x
         self.y = self.host.y
         self.syncxy()
-        return True
 
     def shoot(self, pos):
         amount = min(self.nowstore, self.bulletpershot)
         if amount <= 0:
-            return False
+            return
         # тоже музон нужен
         self.nowstore -= amount
         cx = self.x + self.rect.w // 2
@@ -198,18 +209,22 @@ class Weapon(FloatSprite):
         if self.beforenextshoot <= 0:
             self.shoot(pos)
             self.beforenextshoot = self.shoottime
-            return True
-        return False
 
 
 class Entity(FloatSprite):
-    def __init__(self, x, y, w, h, img):
+    def __init__(self, x, y, w, h, imglist):
         super().__init__(allgroup, wallgroup, entitygroup)
+        self.weapons = {support.KNIFE: None,
+                        support.PISTOL: None,
+                        support.AUTOMAT: None,
+                        support.SHOTGUN: None}
+        self.weapon = support.KNIFE
         self.w = w
         self.h = h
         self.frames = []
         self.frame = 0
-        self.cut(img)
+        self.imglist = imglist
+        self.cut(self.imglist[self.weapon])
         self.image = self.frames[self.frame]
         self.setmask()
         self.rect = self.image.get_rect().move(
@@ -221,7 +236,17 @@ class Entity(FloatSprite):
         self.dy = 0
         self.rx = 0
         self.ry = 0
-        self.weapon = None
+
+    def getweapon(self):
+        return self.weapons[self.weapon]
+
+    def setweapon(self, weapon):
+        myweapon = self.weapons[weapon.weapontype]
+        weapon.merge(myweapon)
+        self.weapon = weapon.weapontype
+        self.weapons[self.weapon] = weapon
+        img = self.imglist[self.weapon]
+        self.cut(img)
 
     def cut(self, img):
         sheet = support.loadImage(img)
@@ -234,35 +259,41 @@ class Entity(FloatSprite):
     def animate(self):
         self.frame = (self.frame + 1) % len(self.frames)
         self.image = self.frames[self.frame]
-        self.mask = pygame.mask.from_surface(self.image)
+        self.setmask()
 
     def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
         self.y += self.dy * dy
         self.syncxy()
         if not check:
-            return True
+            return
         for sprite in wallgroup:
             if pygame.sprite.collide_mask(self, sprite):
                 if type(sprite) != good and sprite != self:
                     self.move(-dx, -dy, False)
-                    return False
-        return True
+                    return
+        return
 
     def detect(self, target):
         difx = abs(self.x - target.x) - support.TILEWIDTH
         dify = abs(self.y - target.y) - support.TILEHEIGHT
         if difx > self.rx or dify > self.ry:
-            return False
+            return
         if difx < 0 and dify < 0:
-            return False
+            return
         dx = (target.x > self.x) - (self.x > target.x)
         dy = (target.y > self.y) - (self.y > target.y)
         self.move(dx, 0)
         self.move(0, dy)
-        return True
+        return
 
-    def shoot(self, angle):
+    def shoot(self):
+        pass
+
+    def reload(self):
+        pass
+
+    def choose(self):
         pass
 
     def update(self, key, *args):
@@ -274,13 +305,17 @@ class Entity(FloatSprite):
             self.detect(*args)
         if key == support.SHOOTKEY:
             self.shoot(*args)
+        if key == support.RELOADKEY:
+            self.reload(*args)
+        if key == support.CHOOSEKEY:
+            self.choose(*args)
 
 
 class Player(Entity):
     def __init__(self, x, y, type):
         super().__init__(x, y,
                          support.TILEWIDTH, support.TILEHEIGHT,
-                         playerimg[type])
+                         playerimg)
         self.add(herogroup)
         self.dx = support.PDX
         self.dy = support.PDY
@@ -293,7 +328,7 @@ class Enemy(Entity):
     def __init__(self, x, y, type):
         super().__init__(x, y,
                          support.TILEWIDTH, support.TILEHEIGHT,
-                         enemyimg[type])
+                         enemyimg)
         self.dx = support.EDX
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
@@ -379,8 +414,8 @@ def generatelevel(level):
                 Tile(x, y, support.MAINTYPE)
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x] in enemyimg:
-                Enemy(x, y, level[y][x])
+            if level[y][x] in enemyweapon:
+                Enemy(x, y, enemyweapon[level[y][x]])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:

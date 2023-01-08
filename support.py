@@ -30,6 +30,8 @@ ANIMATEKEY = 0
 MOVEKEY = 1
 DETECTKEY = 2
 SHOOTKEY = 3
+RELOADKEY = 4
+CHOOSEKEY = 5
 
 
 def calculateDegree(px, py, sc):
