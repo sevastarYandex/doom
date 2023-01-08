@@ -8,13 +8,29 @@ herogroup = pygame.sprite.Group()
 bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
-playerimg = {'@': 'player.png'}
+playerimg = {support.EMPTY: 'playerempty.png',
+             support.KNIFE: 'playerknife.png',
+             support.PISTOL: 'playerpistol.png',
+             support.AUTOMAT: 'playerautomat.png',
+             support.SHOTGUN: 'playershotgun.png'}
 enemyimg = {'a': 'enemy.png'}
-bulletimg = {'z': 'bullet.png'}
-bulletspec = {'z': (40, 600, 20)}
+bulletimg = {'z': 'empty.png',
+             'y': 'bullet.png',
+             'x': 'bullet.png',
+             'w': 'bullet.png'}
+bulletspec = {'z': (40, 80, 40),
+              'y': (50, 600, 30),
+              'x': (40, 400, 20),
+              'w': (100, 300, 10)}
 # скорость, расстояние и урон (в хп)
-weaponimg = {'z': 'wall.png'}
-weaponspec = {'z': (1, 3, 3, 30, 50, 1500)}
+weaponimg = {'z': 'knife.png',
+             'y': 'pistol.png',
+             'x': 'automat.png',
+             'w': 'shotgun.png'}
+weaponspec = {'z': (1, 0, 1, 1, 0, 700),
+              'y': (1, 0, 3, 20, 350, 800),
+              'x': (1, 3, 3, 30, 50, 1600),
+              'w': (12, 6, 3, 84, 600, 3200)}
 # пуль за выстрел, разброс в градусах, количество магазинов и их ёмкость
 # скорострельность и время перезарядки
 backimg = 'back.png'
@@ -77,8 +93,7 @@ class Bullet(FloatSprite):
             self.kill()
 
     def hurt(self, target):
-        # дописать
-        self.kill()
+        pass
 
 
 class Weapon(FloatSprite):
@@ -112,10 +127,11 @@ class Weapon(FloatSprite):
 
     def update(self):
         if self.host is None:
-            return
+            return False
         self.x = self.host.x
         self.y = self.host.y
         self.syncxy()
+        return True
 
     def shoot(self, pos):
         amount = min(self.nowstore, self.bulletpershot)
@@ -156,7 +172,13 @@ class Weapon(FloatSprite):
 
 
 class Knife(Weapon):
-    pass
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.weapontype = support.KNIFE
+
+    def reload(self, *args):
+        self.ammo = 1
+        super().reload(*args)
 
 
 class Pistol(Weapon):
@@ -348,6 +370,8 @@ def generatelevel(level):
         for x in range(len(level[y])):
             if level[y][x] in enemyimg:
                 Enemy(x, y, level[y][x])
-            elif level[y][x] in playerimg:
-                player = Player(x, y, level[y][x])
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == support.PLAYERTYPE:
+                player = Player(x, y, support.EMPTY)
     return player

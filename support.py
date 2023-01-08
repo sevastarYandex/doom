@@ -3,6 +3,11 @@ import os
 import sys
 import math
 import random
+KNIFE = 1
+PISTOL = 2
+AUTOMAT = 3
+SHOTGUN = 4
+EMPTY = 0
 TILEWIDTH = 80
 TILEHEIGHT = 80
 WINDOWWIDTH = None
@@ -17,6 +22,7 @@ MXRX = 10
 MXRY = 6
 MAINTYPE = '1'
 WALLTYPES = ['2']
+PLAYERTYPE = '@'
 ANIMATEKEY = 0
 MOVEKEY = 1
 DETECTKEY = 2
