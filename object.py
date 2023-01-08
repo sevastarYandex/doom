@@ -8,26 +8,25 @@ herogroup = pygame.sprite.Group()
 bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
-playerimg = {support.EMPTY: 'playerempty.png',
-             support.KNIFE: 'playerknife.png',
+playerimg = {support.KNIFE: 'playerknife.png',
              support.PISTOL: 'playerpistol.png',
              support.AUTOMAT: 'playerautomat.png',
              support.SHOTGUN: 'playershotgun.png'}
 enemyimg = {'a': 'enemy.png'}
-bulletimg = {'z': 'empty.png',
+bulletimg = {'z': 'knife.png',
              'y': 'bullet.png',
              'x': 'bullet.png',
              'w': 'bullet.png'}
-bulletspec = {'z': (40, 80, 40),
-              'y': (50, 600, 30),
-              'x': (40, 400, 20),
+bulletspec = {'z': (40, 300, 30),
+              'y': (50, 600, 25),
+              'x': (40, 400, 10),
               'w': (100, 300, 10)}
 # скорость, расстояние и урон (в хп)
 weaponimg = {'z': 'knife.png',
              'y': 'pistol.png',
              'x': 'automat.png',
              'w': 'shotgun.png'}
-weaponspec = {'z': (1, 0, 1, 1, 0, 700),
+weaponspec = {'z': (1, 2, 1, 10, 1000, 0),
               'y': (1, 0, 3, 20, 350, 800),
               'x': (1, 3, 3, 30, 50, 1600),
               'w': (12, 6, 3, 84, 600, 3200)}
@@ -49,6 +48,9 @@ class FloatSprite(pygame.sprite.Sprite):
     def syncxy(self):
         self.rect.x = self.x
         self.rect.y = self.y
+
+    def setmask(self):
+        self.mask = pygame.mask.from_surface(self.image)
 
 
 class Tile(FloatSprite):
@@ -73,7 +75,7 @@ class Bullet(FloatSprite):
         self.cos = cos
         self.shift, self.maxrange, self.damage = bulletspec[type]
         self.image = support.loadImage(bulletimg[type])
-        self.mask = pygame.mask.from_surface(self.image)
+        self.setmask()
         self.rect = self.image.get_rect().move(x, y)
         self.rect = self.rect.move(-self.rect.w // 2, -self.rect.h // 2)
         self.friend = friend
@@ -84,16 +86,21 @@ class Bullet(FloatSprite):
         self.y += self.shift * self.sin
         self.syncxy()
         self.dist += self.shift
+        if self.dist >= self.maxrange:
+            self.damage = 0
         for sprite in wallgroup:
             if pygame.sprite.collide_mask(sprite, self) and type(sprite) != self.friend:
                 self.hurt(sprite)
                 self.kill()
                 return
-        if self.dist >= self.maxrange:
-            self.kill()
 
     def hurt(self, target):
-        pass
+        if not self.damage:
+            return
+        if not isinstance(target, Entity):
+            return
+        target.kill()
+        # дописать
 
 
 class Weapon(FloatSprite):
@@ -107,14 +114,37 @@ class Weapon(FloatSprite):
         self.store, self.shoottime, self.reloadtime = weaponspec[type]
         self.clock = pygame.time.Clock()
         self.image = support.loadImage(weaponimg[type])
-        self.mask = pygame.mask.from_surface(self.image)
+        self.setmask()
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
         )
         self.host = None
+        self.settype(type)
         self.reload()
         self.setxy()
+        if self.weapontype == support.KNIFE:
+            self.nowstore = self.store
+            self.ammo = 0
+
+    def getammo(self, ammo):
+        if self.weapontype == support.KNIFE:
+            self.nowstore += ammo
+            return
+        self.ammo += ammo
+
+    def settype(self, type):
+        if type in support.KNIFETYPES:
+            self.weapontype = support.KNIFE
+            return
+        if type in support.PISTOLTYPES:
+            self.weapontype = support.PISTOL
+            return
+        if type in support.AUTOMATTYPES:
+            self.weapontype = support.AUTOMAT
+            return
+        if type in support.SHOTGUNTYPES:
+            self.weapontype = support.SHOTGUN
 
     def sethost(self, host):
         self.image = support.loadImage(emptyimg)
@@ -147,20 +177,21 @@ class Weapon(FloatSprite):
         for _ in range(amount):
             sin, cos = support.calculateDegree(px, py, self.scatter)
             Bullet(cx, cy, sin, cos, self.friend, self.bullettype)
-        return True
 
     def reload(self):
+        if self.weapontype == support.KNIFE:
+            return
         self.beforenextshoot -= self.clock.tick()
         if self.beforenextshoot > 0:
-            return False
+            return
         # тут музончик
         if not self.ammo:
             self.nowstore = 0
-            return True
+            return
         self.ammo -= 1
         self.nowstore = self.store
         self.beforenextshoot = self.reloadtime
-        return True
+        return
 
     def click(self, pos):
         self.beforenextshoot -= self.clock.tick()
@@ -169,28 +200,6 @@ class Weapon(FloatSprite):
             self.beforenextshoot = self.shoottime
             return True
         return False
-
-
-class Knife(Weapon):
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.weapontype = support.KNIFE
-
-    def reload(self, *args):
-        self.ammo = 1
-        super().reload(*args)
-
-
-class Pistol(Weapon):
-    pass
-
-
-class Automat(Weapon):
-    pass
-
-
-class Shotgun(Weapon):
-    pass
 
 
 class Entity(FloatSprite):
@@ -202,7 +211,7 @@ class Entity(FloatSprite):
         self.frame = 0
         self.cut(img)
         self.image = self.frames[self.frame]
-        self.mask = pygame.mask.from_surface(self.image)
+        self.setmask()
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
@@ -232,24 +241,26 @@ class Entity(FloatSprite):
         self.y += self.dy * dy
         self.syncxy()
         if not check:
-            return
+            return True
         for sprite in wallgroup:
             if pygame.sprite.collide_mask(self, sprite):
                 if type(sprite) != good and sprite != self:
                     self.move(-dx, -dy, False)
-                    return
+                    return False
+        return True
 
     def detect(self, target):
         difx = abs(self.x - target.x) - support.TILEWIDTH
         dify = abs(self.y - target.y) - support.TILEHEIGHT
         if difx > self.rx or dify > self.ry:
-            return
+            return False
         if difx < 0 and dify < 0:
-            return
+            return False
         dx = (target.x > self.x) - (self.x > target.x)
         dy = (target.y > self.y) - (self.y > target.y)
         self.move(dx, 0)
         self.move(0, dy)
+        return True
 
     def shoot(self, angle):
         pass
@@ -373,5 +384,5 @@ def generatelevel(level):
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:
-                player = Player(x, y, support.EMPTY)
+                player = Player(x, y, support.KNIFE)
     return player
