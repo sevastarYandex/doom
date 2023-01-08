@@ -18,18 +18,23 @@ def action():
         screen.get_size()
     shower = object.Shower()
     clock = pygame.time.Clock()
-    weapon = object.Weapon(5, 5, 'z')
-    weapon.sethost(shower.player)
     while shower.isgoing():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     shower.stop()
                 if event.key == pygame.K_r:
-                    weapon.reload()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == pygame.BUTTON_LEFT:
-                    weapon.click(event.pos)
+                    shower.reload()
+                if event.key == pygame.K_e:
+                    shower.take()
+                if event.key == pygame.K_1:
+                    shower.change(support.KNIFE)
+                if event.key == pygame.K_2:
+                    shower.change(support.PISTOL)
+                if event.key == pygame.K_3:
+                    shower.change(support.AUTOMAT)
+                if event.key == pygame.K_4:
+                    shower.change(support.SHOTGUN)
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             shower.move(1, 0)
@@ -39,8 +44,11 @@ def action():
             shower.move(0, 1)
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             shower.move(0, -1)
+        buttons = pygame.mouse.get_pressed()
+        if buttons[0]:
+            shower.shoot(pygame.mouse.get_pos())
         object.bulletgroup.update()
-        weapon.update()
+        object.weapongroup.update()
         shower.detect()
         shower.animate()
         shower.draw(screen)

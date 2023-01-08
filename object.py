@@ -132,8 +132,6 @@ class Weapon(FloatSprite):
         host1, host2 = self.host, other.host
         self.sethost(host2)
         other.sethost(host1)
-        self.syncxy()
-        other.syncxy()
 
     def getammo(self, ammo):
         if self.weapontype == support.KNIFE:
@@ -160,6 +158,7 @@ class Weapon(FloatSprite):
                 host.x - self.x,
                 host.y - self.y
             )
+            self.syncxy()
             self.image = support.loadImage(emptyimg)
         else:
             self.image = support.loadImage(weaponimg[self.bullettype])
@@ -242,7 +241,10 @@ class Entity(FloatSprite):
 
     def setweapon(self, weapon):
         myweapon = self.weapons[weapon.weapontype]
-        weapon.merge(myweapon)
+        if myweapon is not None:
+            weapon.merge(myweapon)
+        else:
+            weapon.sethost(self)
         self.weapon = weapon.weapontype
         self.weapons[self.weapon] = weapon
         img = self.imglist[self.weapon]
@@ -287,14 +289,28 @@ class Entity(FloatSprite):
         self.move(0, dy)
         return
 
-    def shoot(self):
-        pass
+    def shoot(self, pos):
+        weapon = self.getweapon()
+        if weapon is None:
+            return
+        weapon.click(pos)
 
     def reload(self):
-        pass
+        weapon = self.getweapon()
+        if weapon is None:
+            return
+        weapon.reload()
 
-    def choose(self):
-        pass
+    def take(self):
+        for sprite in weapongroup:
+            if pygame.sprite.collide_mask(self, sprite):
+                self.setweapon(sprite)
+                return
+
+    def change(self, key):
+        if self.weapons[key] is not None:
+            self.weapon = key
+            self.cut(self.imglist[self.weapon])
 
     def update(self, key, *args):
         if key == support.ANIMATEKEY:
@@ -307,8 +323,10 @@ class Entity(FloatSprite):
             self.shoot(*args)
         if key == support.RELOADKEY:
             self.reload(*args)
-        if key == support.CHOOSEKEY:
-            self.choose(*args)
+        if key == support.TAKEKEY:
+            self.take(*args)
+        if key == support.CHANGEKEY:
+            self.change(*args)
 
 
 class Player(Entity):
@@ -394,6 +412,18 @@ class Shower:
     def detect(self):
         entitygroup.update(support.DETECTKEY, self.player)
 
+    def shoot(self, pos):
+        herogroup.update(support.SHOOTKEY, pos)
+
+    def reload(self):
+        herogroup.update(support.RELOADKEY)
+
+    def take(self):
+        herogroup.update(support.TAKEKEY)
+
+    def change(self, key):
+        herogroup.update(support.CHANGEKEY, key)
+
     def draw(self, screen):
         self.camera.update(self.player)
         for sprite in allgroup:
@@ -416,6 +446,10 @@ def generatelevel(level):
         for x in range(len(level[y])):
             if level[y][x] in enemyweapon:
                 Enemy(x, y, enemyweapon[level[y][x]])
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] in weaponimg:
+                Weapon(x, y, level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:
