@@ -133,11 +133,16 @@ class Weapon(FloatSprite):
         self.sethost(host2)
         other.sethost(host1)
 
-    def getammo(self, ammo):
+    def setammo(self, ammo):
         if self.weapontype == support.KNIFE:
             self.nowstore += ammo
             return
         self.ammo += ammo
+
+    def getammo(self):
+        if self.weapontype == support.KNIFE:
+            return self.nowstore
+        return self.ammo
 
     def settype(self, type):
         if type in support.KNIFETYPES:
@@ -243,6 +248,9 @@ class Entity(FloatSprite):
         myweapon = self.weapons[weapon.weapontype]
         if myweapon is not None:
             weapon.merge(myweapon)
+            if weapon.bullettype == myweapon.bullettype:
+                weapon.setammo(myweapon.getammo())
+                myweapon.setammo(-myweapon.getammo())
         else:
             weapon.sethost(self)
         self.weapon = weapon.weapontype
@@ -309,10 +317,15 @@ class Entity(FloatSprite):
 
     def change(self, key):
         if self.weapons[key] is not None:
-            self.weapon = key
-            self.cut(self.imglist[self.weapon])
+            if self.weapons[key].getammo():
+                self.weapon = key
+                self.cut(self.imglist[self.weapon])
 
-    def update(self, key, *args):
+    def update(self, *args):
+        if not args:
+            return
+        key = args[0]
+        args = args[1:]
         if key == support.ANIMATEKEY:
             self.animate(*args)
         if key == support.MOVEKEY:
@@ -388,6 +401,11 @@ class Shower:
         self.show = True
         self.upd = 0
         self.camera = Camera()
+
+    def update(self):
+        self.detect()
+        self.animate()
+        allgroup.update()
 
     def stop(self):
         self.show = False

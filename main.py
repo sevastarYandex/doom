@@ -47,10 +47,7 @@ def action():
         buttons = pygame.mouse.get_pressed()
         if buttons[0]:
             shower.shoot(pygame.mouse.get_pos())
-        object.bulletgroup.update()
-        object.weapongroup.update()
-        shower.detect()
-        shower.animate()
+        shower.update()
         shower.draw(screen)
         pygame.display.flip()
         clock.tick(support.FPS)
