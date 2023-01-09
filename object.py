@@ -8,12 +8,12 @@ herogroup = pygame.sprite.Group()
 bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
 tileimg = {'1': 'lava.png', '2': 'wall.png'}
+# до сюда оставляем
 playerimg = {support.KNIFE: 'playerknife.png',
              support.PISTOL: 'playerpistol.png',
              support.AUTOMAT: 'playerautomat.png',
              support.SHOTGUN: 'playershotgun.png'}
 enemyimg = {support.KNIFE: 'enemy.png'}
-enemyweapon = {'a': support.KNIFE}
 bulletimg = {'z': 'knife.png',
              'y': 'bullet.png',
              'x': 'bullet.png',
@@ -31,6 +31,8 @@ weaponspec = {'z': (1, 2, 1, 10, 1000, 0),
               'y': (1, 0, 3, 20, 350, 800),
               'x': (1, 3, 3, 30, 50, 1600),
               'w': (12, 6, 3, 84, 600, 3200)}
+enemyhealth = {'a': 100, 'b': 50}
+enemyweapon = {}
 # пуль за выстрел, разброс в градусах, количество магазинов и их ёмкость
 # скорострельность и время перезарядки
 backimg = 'back.png'
@@ -100,8 +102,7 @@ class Bullet(FloatSprite):
             return
         if not isinstance(target, Entity):
             return
-        target.kill()
-        # дописать
+        target.suffer(self.damage)
 
 
 class Weapon(FloatSprite):
@@ -216,13 +217,14 @@ class Weapon(FloatSprite):
 
 
 class Entity(FloatSprite):
-    def __init__(self, x, y, w, h, imglist):
+    def __init__(self, x, y, w, h, health, imglist, type):
         super().__init__(allgroup, wallgroup, entitygroup)
         self.weapons = {support.KNIFE: None,
                         support.PISTOL: None,
                         support.AUTOMAT: None,
                         support.SHOTGUN: None}
-        self.weapon = support.KNIFE
+        self.health = health
+        self.weapon = type
         self.w = w
         self.h = h
         self.frames = []
@@ -243,6 +245,11 @@ class Entity(FloatSprite):
 
     def getweapon(self):
         return self.weapons[self.weapon]
+
+    def suffer(self, hp):
+        self.health -= hp
+        if self.health <= 0:
+            self.kill()
 
     def setweapon(self, weapon):
         myweapon = self.weapons[weapon.weapontype]
@@ -343,10 +350,10 @@ class Entity(FloatSprite):
 
 
 class Player(Entity):
-    def __init__(self, x, y, type):
+    def __init__(self, x, y, health, type):
         super().__init__(x, y,
-                         support.TILEWIDTH, support.TILEHEIGHT,
-                         playerimg)
+                         support.TILEWIDTH, support.TILEHEIGHT, health,
+                         playerimg, type)
         self.add(herogroup)
         self.dx = support.PDX
         self.dy = support.PDY
@@ -356,10 +363,10 @@ class Player(Entity):
 
 
 class Enemy(Entity):
-    def __init__(self, x, y, type):
+    def __init__(self, x, y, health, type):
         super().__init__(x, y,
-                         support.TILEWIDTH, support.TILEHEIGHT,
-                         enemyimg)
+                         support.TILEWIDTH, support.TILEHEIGHT, health,
+                         enemyimg, type)
         self.dx = support.EDX
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
@@ -463,7 +470,7 @@ def generatelevel(level):
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in enemyweapon:
-                Enemy(x, y, enemyweapon[level[y][x]])
+                Enemy(x, y, level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in weaponimg:
@@ -471,5 +478,5 @@ def generatelevel(level):
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:
-                player = Player(x, y, support.KNIFE)
+                player = Player(x, y)
     return player
