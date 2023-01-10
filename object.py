@@ -10,7 +10,7 @@ weapongroup = pygame.sprite.Group()
 emptyimg = 'back/empty.png'
 tileimg = {'1': 'tile/ground.png',
            '2': 'tile/wall.png'}
-bulletimg = {'z': 'bullet/usual.png',
+bulletimg = {'z': 'back/empty.png',
              'y': 'bullet/usual.png',
              'x': 'bullet/usual.png',
              'w': 'bullet/usual.png'}
@@ -92,7 +92,7 @@ class Bullet(FloatSprite):
         if self.dist >= self.maxrange:
             self.damage = 0
         for sprite in wallgroup:
-            if pygame.sprite.collide_mask(sprite, self) and type(sprite) != self.friend:
+            if pygame.sprite.collide_rect(sprite, self) and type(sprite) != self.friend:
                 self.hurt(sprite)
                 self.kill()
                 return
@@ -288,6 +288,7 @@ class Entity(FloatSprite):
         if difx > self.rx or dify > self.ry:
             return
         if difx < 0 and dify < 0:
+            self.shoot((target.x, target.y))
             return
         dx = (target.x > self.x) - (self.x > target.x)
         dy = (target.y > self.y) - (self.y > target.y)
