@@ -28,7 +28,7 @@ def action():
                 if event.key == pygame.K_e:
                     shower.take()
                 if event.key == pygame.K_1:
-                    shower.change(support.KNIFE)
+                    shower.change(support.DUKE)
                 if event.key == pygame.K_2:
                     shower.change(support.PISTOL)
                 if event.key == pygame.K_3:

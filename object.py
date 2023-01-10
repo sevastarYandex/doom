@@ -34,8 +34,8 @@ enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
                   support.PISTOL: 'enemy/pistol.png',
                   support.AUTOMAT: 'enemy/automat.png',
                   support.SHOTGUN: 'enemy/shotgun.png'}}
-entityspec = {'@': (100, 'z'),
-              'a': (50, 'z')}
+entityspec = {'@': (100, ('z',)),
+              'a': (50, ('z',))}
 backimg = 'back/dungeon.png'
 
 
@@ -115,11 +115,12 @@ class Weapon(FloatSprite):
         self.bps = weaponspec[self.type][1]
         self.ammo = weaponspec[self.type][2]
         self.store = weaponspec[self.type][3]
-        self.nowstore = 0
         self.maxstore = weaponspec[self.type][4]
+        self.nowstore = self.maxstore
         self.scatter = weaponspec[self.type][5]
         self.shoottime = weaponspec[self.type][6]
         self.reloadtime = weaponspec[self.type][7]
+        self.beforenextshoot = 0
         self.clock = pygame.time.Clock()
         self.image = support.loadImage(weaponimg[self.type])
         self.setmask()
@@ -185,7 +186,8 @@ class Weapon(FloatSprite):
             return
         # тут музончик
         if not self.ammo:
-            self.nowstore = 0
+            return
+        if self.nowstore == self.maxstore:
             return
         self.ammo -= 1
         self.nowstore = min(self.maxstore, self.nowstore + self.store)
@@ -206,19 +208,19 @@ class Entity(FloatSprite):
                         support.PISTOL: None,
                         support.AUTOMAT: None,
                         support.SHOTGUN: None}
+        self.imglist = imglist
+        self.w = w
+        self.h = h
         self.health = entityspec[type][0]
         self.maxhealth = self.health
         self.currentwp = support.DUKE
-        for t in entityspec[1:]:
+        for t in entityspec[type][1]:
             weapon = Weapon(0, 0, t)
             self.setweapon(weapon)
         if curslot is not None:
             self.change(curslot)
-        self.w = w
-        self.h = h
         self.frames = []
         self.curframe = -1
-        self.imglist = imglist
         self.cut(self.imglist[self.currentwp])
         self.animate()
         self.rect = self.image.get_rect().move(
