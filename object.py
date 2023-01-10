@@ -7,36 +7,36 @@ entitygroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
 bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
-tileimg = {'1': 'lava.png', '2': 'wall.png'}
-# до сюда оставляем
-playerimg = {support.KNIFE: 'playerknife.png',
-             support.PISTOL: 'playerpistol.png',
-             support.AUTOMAT: 'playerautomat.png',
-             support.SHOTGUN: 'playershotgun.png'}
-enemyimg = {support.KNIFE: 'enemy.png'}
-bulletimg = {'z': 'knife.png',
-             'y': 'bullet.png',
-             'x': 'bullet.png',
-             'w': 'bullet.png'}
+emptyimg = 'back/empty.png'
+tileimg = {'1': 'tile/ground.png',
+           '2': 'tile/wall.png'}
+bulletimg = {'z': 'bullet/usual.png',
+             'y': 'bullet/usual.png',
+             'x': 'bullet/usual.png',
+             'w': 'bullet/usual.png'}
 bulletspec = {'z': (40, 300, 30),
               'y': (50, 600, 25),
               'x': (40, 400, 10),
               'w': (100, 300, 10)}
-# скорость, расстояние и урон (в хп)
-weaponimg = {'z': 'knife.png',
-             'y': 'pistol.png',
-             'x': 'automat.png',
-             'w': 'shotgun.png'}
-weaponspec = {'z': (1, 2, 1, 10, 1000, 0),
-              'y': (1, 0, 3, 20, 350, 800),
-              'x': (1, 3, 3, 30, 50, 1600),
-              'w': (12, 6, 3, 84, 600, 3200)}
-enemyhealth = {'a': 100, 'b': 50}
-enemyweapon = {}
-# пуль за выстрел, разброс в градусах, количество магазинов и их ёмкость
-# скорострельность и время перезарядки
-backimg = 'back.png'
-emptyimg = 'empty.png'
+weaponimg = {'z': 'weapon/duke.png',
+             'y': 'weapon/pistol.png',
+             'x': 'weapon/automat.png',
+             'w': 'weapon/shotgun.png'}
+weaponspec = {'z': (support.DUKE, 1, support.NOLIMITWEAPON, 1, 1, 1, 700, 0),
+              'y': (support.PISTOL, 1, 5, 10, 10, 2, 600, 1000),
+              'x': (support.AUTOMAT, 1, 3, 30, 30, 4, 200, 2000),
+              'w': (support.SHOTGUN, 12, 7, 1, 7, 6, 800, 600)}
+playerimg = {support.DUKE: 'player/duke.png',
+             support.PISTOL: 'player/pistol.png',
+             support.AUTOMAT: 'player/automat.png',
+             support.SHOTGUN: 'player/shotgun.png'}
+enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
+                  support.PISTOL: 'enemy/pistol.png',
+                  support.AUTOMAT: 'enemy/automat.png',
+                  support.SHOTGUN: 'enemy/shotgun.png'}}
+entityspec = {'@': (100, 'z'),
+              'a': (50, 'z')}
+backimg = 'back/dungeon.png'
 
 
 class FloatSprite(pygame.sprite.Sprite):
@@ -62,7 +62,7 @@ class Tile(FloatSprite):
         if type in support.WALLTYPES:
             self.add(wallgroup)
         self.image = support.loadImage(tileimg[type])
-        self.mask = pygame.mask.from_surface(self.image)
+        self.setmask()
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
@@ -108,69 +108,51 @@ class Bullet(FloatSprite):
 class Weapon(FloatSprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup, weapongroup)
-        self.friend = None
-        self.nowstore = 0 # сколько пуль сейчас в магазине
-        self.beforenextshoot = 0 # сколько ещё нельзя стрелять (в мс)
-        self.bullettype = type # тип пули
-        self.bulletpershot, self.scatter, self.ammo, \
-        self.store, self.shoottime, self.reloadtime = weaponspec[type]
+        self.type = type
+        self.kind = weaponspec[self.type][0]
+        self.friendtype = None
+        self.host = None
+        self.bps = weaponspec[self.type][1]
+        self.ammo = weaponspec[self.type][2]
+        self.store = weaponspec[self.type][3]
+        self.nowstore = 0
+        self.maxstore = weaponspec[self.type][4]
+        self.scatter = weaponspec[self.type][5]
+        self.shoottime = weaponspec[self.type][6]
+        self.reloadtime = weaponspec[self.type][7]
         self.clock = pygame.time.Clock()
-        self.image = support.loadImage(weaponimg[type])
+        self.image = support.loadImage(weaponimg[self.type])
         self.setmask()
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
         )
-        self.host = None
-        self.settype(type)
-        self.reload()
         self.setxy()
-        if self.weapontype == support.KNIFE:
-            self.nowstore = self.store
-            self.ammo = 0
 
     def merge(self, other):
         host1, host2 = self.host, other.host
         self.sethost(host2)
         other.sethost(host1)
 
-    def setammo(self, ammo):
-        if self.weapontype == support.KNIFE:
-            self.nowstore += ammo
+    def addammo(self, ammo):
+        if self.getammo() == support.NOLIMITWEAPON:
             return
         self.ammo += ammo
 
     def getammo(self):
-        if self.weapontype == support.KNIFE:
-            return self.nowstore
         return self.ammo
-
-    def settype(self, type):
-        if type in support.KNIFETYPES:
-            self.weapontype = support.KNIFE
-            return
-        if type in support.PISTOLTYPES:
-            self.weapontype = support.PISTOL
-            return
-        if type in support.AUTOMATTYPES:
-            self.weapontype = support.AUTOMAT
-            return
-        if type in support.SHOTGUNTYPES:
-            self.weapontype = support.SHOTGUN
 
     def sethost(self, host):
         if isinstance(host, Entity):
-            self.rect = self.rect.move(
-                host.x - self.x,
-                host.y - self.y
-            )
+            self.x = host.x
+            self.y = host.y
             self.syncxy()
             self.image = support.loadImage(emptyimg)
         else:
-            self.image = support.loadImage(weaponimg[self.bullettype])
+            self.image = support.loadImage(weaponimg[self.type])
         self.setmask()
         self.host = host
-        self.friend = type(self.host)
+        self.friendtype = type(self.host)
 
     def update(self):
         if self.host is None:
@@ -180,22 +162,23 @@ class Weapon(FloatSprite):
         self.syncxy()
 
     def shoot(self, pos):
-        amount = min(self.nowstore, self.bulletpershot)
-        if amount <= 0:
+        if self.ammo == support.NOLIMITWEAPON:
+            self.nowstore = 1
+        if not self.nowstore:
             return
         # тоже музон нужен
-        self.nowstore -= amount
+        self.nowstore -= 1
         cx = self.x + self.rect.w // 2
         cy = self.y + self.rect.h // 2
         px, py = pos
         px -= cx
         py -= cy
-        for _ in range(amount):
+        for _ in range(self.bps):
             sin, cos = support.calculateDegree(px, py, self.scatter)
-            Bullet(cx, cy, sin, cos, self.friend, self.bullettype)
+            Bullet(cx, cy, sin, cos, self.friendtype, self.type)
 
     def reload(self):
-        if self.weapontype == support.KNIFE:
+        if self.ammo == support.NOLIMITWEAPON:
             return
         self.beforenextshoot -= self.clock.tick()
         if self.beforenextshoot > 0:
@@ -205,7 +188,7 @@ class Weapon(FloatSprite):
             self.nowstore = 0
             return
         self.ammo -= 1
-        self.nowstore = self.store
+        self.nowstore = min(self.maxstore, self.nowstore + self.store)
         self.beforenextshoot = self.reloadtime
         return
 
@@ -217,22 +200,27 @@ class Weapon(FloatSprite):
 
 
 class Entity(FloatSprite):
-    def __init__(self, x, y, w, h, health, imglist, type):
+    def __init__(self, x, y, w, h, type, imglist, curslot):
         super().__init__(allgroup, wallgroup, entitygroup)
-        self.weapons = {support.KNIFE: None,
+        self.weapons = {support.DUKE: None,
                         support.PISTOL: None,
                         support.AUTOMAT: None,
                         support.SHOTGUN: None}
-        self.health = health
-        self.weapon = type
+        self.health = entityspec[type][0]
+        self.maxhealth = self.health
+        self.currentwp = support.DUKE
+        for t in entityspec[1:]:
+            weapon = Weapon(0, 0, t)
+            self.setweapon(weapon)
+        if curslot is not None:
+            self.change(curslot)
         self.w = w
         self.h = h
         self.frames = []
-        self.frame = 0
+        self.curframe = -1
         self.imglist = imglist
-        self.cut(self.imglist[self.weapon])
-        self.image = self.frames[self.frame]
-        self.setmask()
+        self.cut(self.imglist[self.currentwp])
+        self.animate()
         self.rect = self.image.get_rect().move(
             support.TILEWIDTH * x,
             support.TILEHEIGHT * y
@@ -244,7 +232,7 @@ class Entity(FloatSprite):
         self.ry = 0
 
     def getweapon(self):
-        return self.weapons[self.weapon]
+        return self.weapons[self.currentwp]
 
     def suffer(self, hp):
         self.health -= hp
@@ -252,17 +240,17 @@ class Entity(FloatSprite):
             self.kill()
 
     def setweapon(self, weapon):
-        myweapon = self.weapons[weapon.weapontype]
+        myweapon = self.weapons[weapon.kind]
         if myweapon is not None:
             weapon.merge(myweapon)
-            if weapon.bullettype == myweapon.bullettype:
-                weapon.setammo(myweapon.getammo())
-                myweapon.setammo(-myweapon.getammo())
+            if weapon.type == myweapon.type:
+                weapon.addammo(myweapon.getammo())
+                myweapon.addammo(-myweapon.getammo())
         else:
             weapon.sethost(self)
-        self.weapon = weapon.weapontype
-        self.weapons[self.weapon] = weapon
-        img = self.imglist[self.weapon]
+        self.currentwp = weapon.kind
+        self.weapons[self.currentwp] = weapon
+        img = self.imglist[self.currentwp]
         self.cut(img)
 
     def cut(self, img):
@@ -272,11 +260,12 @@ class Entity(FloatSprite):
         self.frames = [sheet.subsurface(
             pygame.Rect((self.w * (ind % cols), self.h * (ind // cols)), (self.w, self.h)))
         for ind in range(cols * rows)]
+        self.masks = [pygame.mask.from_surface(frame) for frame in self.frames]
 
     def animate(self):
-        self.frame = (self.frame + 1) % len(self.frames)
-        self.image = self.frames[self.frame]
-        self.setmask()
+        self.curframe = (self.curframe + 1) % len(self.frames)
+        self.image = self.frames[self.curframe]
+        self.mask = self.masks[self.curframe]
 
     def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
@@ -325,8 +314,8 @@ class Entity(FloatSprite):
     def change(self, key):
         if self.weapons[key] is not None:
             if self.weapons[key].getammo():
-                self.weapon = key
-                self.cut(self.imglist[self.weapon])
+                self.currentwp = key
+                self.cut(self.imglist[self.currentwp])
 
     def update(self, *args):
         if not args:
@@ -350,10 +339,10 @@ class Entity(FloatSprite):
 
 
 class Player(Entity):
-    def __init__(self, x, y, health, type):
-        super().__init__(x, y,
-                         support.TILEWIDTH, support.TILEHEIGHT, health,
-                         playerimg, type)
+    def __init__(self, x, y):
+        super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
+                         support.PLAYERTYPE, playerimg,
+                         support.DUKE)
         self.add(herogroup)
         self.dx = support.PDX
         self.dy = support.PDY
@@ -363,10 +352,9 @@ class Player(Entity):
 
 
 class Enemy(Entity):
-    def __init__(self, x, y, health, type):
-        super().__init__(x, y,
-                         support.TILEWIDTH, support.TILEHEIGHT, health,
-                         enemyimg, type)
+    def __init__(self, x, y, type):
+        super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
+                         type, enemyimg[type], support.DUKE)
         self.dx = support.EDX
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
@@ -469,12 +457,12 @@ def generatelevel(level):
                 Tile(x, y, support.MAINTYPE)
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x] in enemyweapon:
-                Enemy(x, y, level[y][x])
-    for y in range(len(level)):
-        for x in range(len(level[y])):
             if level[y][x] in weaponimg:
                 Weapon(x, y, level[y][x])
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] in enemyimg:
+                Enemy(x, y, level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:

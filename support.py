@@ -3,14 +3,11 @@ import os
 import sys
 import math
 import random
-KNIFE = 1
+DUKE = 1
 PISTOL = 2
 AUTOMAT = 3
 SHOTGUN = 4
-KNIFETYPES = ['z']
-PISTOLTYPES = ['y']
-AUTOMATTYPES = ['x']
-SHOTGUNTYPES = ['w']
+NOLIMITWEAPON = -1
 TILEWIDTH = 80
 TILEHEIGHT = 80
 WINDOWWIDTH = None
