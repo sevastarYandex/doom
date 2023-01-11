@@ -9,6 +9,7 @@ entitygroup = pygame.sprite.Group()
 bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
 medicinegroup = pygame.sprite.Group()
+armorgroup = pygame.sprite.Group()
 emptyimg = 'back/empty.png'
 tileimg = {'1': 'tile/ground.png',
            '2': 'tile/wall.png'}
@@ -24,6 +25,10 @@ medicineimg = {'+': 'medicine/20.png',
                '*': 'medicine/80.png'}
 medicinespec = {'+': (20,),
                 '*': (80,)}
+armorimg = {'[': 'armor/1.25.png',
+            '{': 'armor/2.5.png'}
+armorspec = {'[': (1.25,),
+             '{': (2.5,)}
 weaponimg = {'z': 'weapon/duke.png',
              'y': 'weapon/pistol.png',
              'x': 'weapon/automat.png',
@@ -213,6 +218,7 @@ class Entity(FloatSprite):
                         support.AUTOMAT: None,
                         support.SHOTGUN: None}
         self.imglist = imglist
+        self.armor = 1
         self.w = w
         self.h = h
         self.health = entityspec[type][0]
@@ -241,6 +247,8 @@ class Entity(FloatSprite):
         return self.weapons[self.currentwp]
 
     def suffer(self, hp):
+        if hp > 0:
+            hp /= self.armor
         self.health -= hp
         if self.health <= 0:
             self.kill()
@@ -419,6 +427,34 @@ class Medicine(FloatSprite):
         return True
 
 
+class Armor(FloatSprite):
+    def __init__(self, x, y, type):
+        super().__init__(allgroup, armorgroup)
+        self.friendtype = Player
+        self.coeff = armorspec[type][0]
+        self.image = support.loadImage(armorimg[type])
+        self.setmask()
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+        self.setxy()
+
+    def update(self):
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(sprite, self) and type(sprite) == self.friendtype:
+                success = self.protect(sprite)
+                if success:
+                    return
+
+    def protect(self, patient):
+        if patient.armor >= self.coeff:
+            return False
+        patient.armor = self.coeff
+        self.kill()
+        return True
+
+
 class Back(FloatSprite):
     def __init__(self):
         super().__init__(allgroup)
@@ -514,6 +550,8 @@ def generatelevel(level):
         for x in range(len(level[y])):
             if level[y][x] in medicineimg:
                 Medicine(x, y, level[y][x])
+            if level[y][x] in armorimg:
+                Armor(x, y, level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in weaponimg:
