@@ -3,8 +3,9 @@ import pygame
 import support
 allgroup = pygame.sprite.Group()
 wallgroup = pygame.sprite.Group()
-entitygroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
+enemygroup = pygame.sprite.Group()
+entitygroup = pygame.sprite.Group()
 bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
 emptyimg = 'back/empty.png'
@@ -23,7 +24,7 @@ weaponimg = {'z': 'weapon/duke.png',
              'x': 'weapon/automat.png',
              'w': 'weapon/shotgun.png'}
 weaponspec = {'z': (support.DUKE, 1, support.NOLIMITWEAPON, 1, 1, 1, 700, 0),
-              'y': (support.PISTOL, 1, 5, 10, 10, 2, 600, 1000),
+              'y': (support.PISTOL, 1, 2, 10, 10, 2, 600, 1000),
               'x': (support.AUTOMAT, 1, 3, 30, 30, 4, 200, 2000),
               'w': (support.SHOTGUN, 12, 7, 1, 7, 6, 800, 600)}
 playerimg = {support.DUKE: 'player/duke.png',
@@ -34,8 +35,8 @@ enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
                   support.PISTOL: 'enemy/pistol.png',
                   support.AUTOMAT: 'enemy/automat.png',
                   support.SHOTGUN: 'enemy/shotgun.png'}}
-entityspec = {'@': (100, ('z',)),
-              'a': (50, ('z',))}
+entityspec = {'@': (100000, ('z',)),
+              'a': (50, ('y',))}
 backimg = 'back/dungeon.png'
 
 
@@ -213,7 +214,7 @@ class Entity(FloatSprite):
         self.h = h
         self.health = entityspec[type][0]
         self.maxhealth = self.health
-        self.currentwp = support.DUKE
+        self.currentwp = support.MAINSLOT
         for t in entityspec[type][1]:
             weapon = Weapon(0, 0, t)
             self.setweapon(weapon)
@@ -287,8 +288,8 @@ class Entity(FloatSprite):
         dify = abs(self.y - target.y) - support.TILEHEIGHT
         if difx > self.rx or dify > self.ry:
             return
+        self.shoot((target.x + target.w // 2, target.y + target.h // 2))
         if difx < 0 and dify < 0:
-            self.shoot((target.x, target.y))
             return
         dx = (target.x > self.x) - (self.x > target.x)
         dy = (target.y > self.y) - (self.y > target.y)
@@ -301,12 +302,16 @@ class Entity(FloatSprite):
         if weapon is None:
             return
         weapon.click(pos)
+        if not weapon.getammo() and not weapon.nowstore:
+            self.change(support.MAINSLOT)
 
     def reload(self):
         weapon = self.getweapon()
         if weapon is None:
             return
         weapon.reload()
+        if not weapon.getammo() and not weapon.nowstore:
+            self.change(support.MAINSLOT)
 
     def take(self):
         for sprite in weapongroup:
@@ -315,10 +320,14 @@ class Entity(FloatSprite):
                 return
 
     def change(self, key):
-        if self.weapons[key] is not None:
-            if self.weapons[key].getammo():
-                self.currentwp = key
-                self.cut(self.imglist[self.currentwp])
+        if self.weapons[key] is None:
+            return
+        weapon = self.weapons[key]
+        if not weapon.getammo() and not weapon.nowstore:
+            return
+        self.currentwp = key
+        img = self.imglist[self.currentwp]
+        self.cut(img)
 
     def update(self, *args):
         if not args:
@@ -350,14 +359,12 @@ class Player(Entity):
         self.dx = support.PDX
         self.dy = support.PDY
 
-    def detect(self, *args):
-        return
-
 
 class Enemy(Entity):
     def __init__(self, x, y, type):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
                          type, enemyimg[type], support.DUKE)
+        self.add(enemygroup)
         self.dx = support.EDX
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
@@ -365,6 +372,17 @@ class Enemy(Entity):
 
     def move(self, dx, dy, check=True, good=None):
         super().move(dx, dy, check, Enemy)
+
+    def reload(self):
+        weapon = self.getweapon()
+        if weapon is not None:
+            self.weapons[self.currentwp].addammo(weapon.store * 2)
+        super().reload()
+
+    def shoot(self, pos):
+        super().shoot(pos)
+        if not self.getweapon().nowstore:
+            self.reload()
 
 
 class Back(FloatSprite):
@@ -426,7 +444,7 @@ class Shower:
         herogroup.update(support.MOVEKEY, dx, dy)
 
     def detect(self):
-        entitygroup.update(support.DETECTKEY, self.player)
+        enemygroup.update(support.DETECTKEY, self.player)
 
     def shoot(self, pos):
         herogroup.update(support.SHOOTKEY, pos)

@@ -23,8 +23,6 @@ def action():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     shower.stop()
-                if event.key == pygame.K_r:
-                    shower.reload()
                 if event.key == pygame.K_e:
                     shower.take()
                 if event.key == pygame.K_1:
@@ -44,6 +42,8 @@ def action():
             shower.move(0, 1)
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             shower.move(0, -1)
+        if keys[pygame.K_r]:
+            shower.reload()
         buttons = pygame.mouse.get_pressed()
         if buttons[0]:
             shower.shoot(pygame.mouse.get_pos())
