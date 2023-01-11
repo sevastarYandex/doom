@@ -15,7 +15,7 @@ bulletimg = {'z': 'back/empty.png',
              'y': 'bullet/usual.png',
              'x': 'bullet/usual.png',
              'w': 'bullet/usual.png'}
-bulletspec = {'z': (40, 300, 30),
+bulletspec = {'z': (40, 300, 2),
               'y': (50, 600, 25),
               'x': (40, 400, 10),
               'w': (100, 300, 10)}
@@ -23,8 +23,8 @@ weaponimg = {'z': 'weapon/duke.png',
              'y': 'weapon/pistol.png',
              'x': 'weapon/automat.png',
              'w': 'weapon/shotgun.png'}
-weaponspec = {'z': (support.DUKE, 1, support.NOLIMITWEAPON, 1, 1, 1, 700, 0),
-              'y': (support.PISTOL, 1, 2, 10, 10, 2, 600, 1000),
+weaponspec = {'z': (support.DUKE, 15, support.NOLIMITWEAPON, 1, 1, 6, 700, 0),
+              'y': (support.PISTOL, 1, 10, 10, 10, 2, 600, 1000),
               'x': (support.AUTOMAT, 1, 3, 30, 30, 4, 200, 2000),
               'w': (support.SHOTGUN, 12, 7, 1, 7, 6, 800, 600)}
 playerimg = {support.DUKE: 'player/duke.png',
@@ -35,7 +35,7 @@ enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
                   support.PISTOL: 'enemy/pistol.png',
                   support.AUTOMAT: 'enemy/automat.png',
                   support.SHOTGUN: 'enemy/shotgun.png'}}
-entityspec = {'@': (100000, ('z',)),
+entityspec = {'@': (100, ('z',)),
               'a': (50, ('y',))}
 backimg = 'back/dungeon.png'
 
@@ -164,9 +164,12 @@ class Weapon(FloatSprite):
         self.syncxy()
 
     def shoot(self, pos):
+        self.beforenextshoot -= self.clock.tick()
         if self.ammo == support.NOLIMITWEAPON:
             self.nowstore = 1
         if not self.nowstore:
+            return
+        if self.beforenextshoot > 0:
             return
         # тоже музон нужен
         self.nowstore -= 1
@@ -178,11 +181,12 @@ class Weapon(FloatSprite):
         for _ in range(self.bps):
             sin, cos = support.calculateDegree(px, py, self.scatter)
             Bullet(cx, cy, sin, cos, self.friendtype, self.type)
+        self.beforenextshoot = self.shoottime
 
     def reload(self):
+        self.beforenextshoot -= self.clock.tick()
         if self.ammo == support.NOLIMITWEAPON:
             return
-        self.beforenextshoot -= self.clock.tick()
         if self.beforenextshoot > 0:
             return
         # тут музончик
@@ -194,12 +198,6 @@ class Weapon(FloatSprite):
         self.nowstore = min(self.maxstore, self.nowstore + self.store)
         self.beforenextshoot = self.reloadtime
         return
-
-    def click(self, pos):
-        self.beforenextshoot -= self.clock.tick()
-        if self.beforenextshoot <= 0:
-            self.shoot(pos)
-            self.beforenextshoot = self.shoottime
 
 
 class Entity(FloatSprite):
@@ -289,6 +287,7 @@ class Entity(FloatSprite):
         if difx > self.rx or dify > self.ry:
             return
         self.shoot((target.x + target.w // 2, target.y + target.h // 2))
+        self.reload()
         if difx < 0 and dify < 0:
             return
         dx = (target.x > self.x) - (self.x > target.x)
@@ -301,7 +300,7 @@ class Entity(FloatSprite):
         weapon = self.getweapon()
         if weapon is None:
             return
-        weapon.click(pos)
+        weapon.shoot(pos)
         if not weapon.getammo() and not weapon.nowstore:
             self.change(support.MAINSLOT)
 
@@ -320,9 +319,9 @@ class Entity(FloatSprite):
                 return
 
     def change(self, key):
-        if self.weapons[key] is None:
-            return
         weapon = self.weapons[key]
+        if weapon is None:
+            return
         if not weapon.getammo() and not weapon.nowstore:
             return
         self.currentwp = key
@@ -375,14 +374,14 @@ class Enemy(Entity):
 
     def reload(self):
         weapon = self.getweapon()
-        if weapon is not None:
-            self.weapons[self.currentwp].addammo(weapon.store * 2)
+        weapon.ammo = 2
+        if weapon.nowstore:
+            return
         super().reload()
 
     def shoot(self, pos):
         super().shoot(pos)
-        if not self.getweapon().nowstore:
-            self.reload()
+        self.reload()
 
 
 class Back(FloatSprite):
