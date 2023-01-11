@@ -8,6 +8,7 @@ enemygroup = pygame.sprite.Group()
 entitygroup = pygame.sprite.Group()
 bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
+medicinegroup = pygame.sprite.Group()
 emptyimg = 'back/empty.png'
 tileimg = {'1': 'tile/ground.png',
            '2': 'tile/wall.png'}
@@ -18,7 +19,11 @@ bulletimg = {'z': 'back/empty.png',
 bulletspec = {'z': (40, 300, 2),
               'y': (50, 600, 25),
               'x': (40, 400, 10),
-              'w': (100, 300, 10)}
+              'w': (100, 300, 5)}
+medicineimg = {'+': 'medicine/20.png',
+               '*': 'medicine/80.png'}
+medicinespec = {'+': (20,),
+                '*': (80,)}
 weaponimg = {'z': 'weapon/duke.png',
              'y': 'weapon/pistol.png',
              'x': 'weapon/automat.png',
@@ -82,7 +87,7 @@ class Bullet(FloatSprite):
         self.setmask()
         self.rect = self.image.get_rect().move(x, y)
         self.rect = self.rect.move(-self.rect.w // 2, -self.rect.h // 2)
-        self.friend = friend
+        self.friendtype = friend
         self.setxy()
 
     def update(self):
@@ -93,7 +98,7 @@ class Bullet(FloatSprite):
         if self.dist >= self.maxrange:
             self.damage = 0
         for sprite in wallgroup:
-            if pygame.sprite.collide_rect(sprite, self) and type(sprite) != self.friend:
+            if pygame.sprite.collide_rect(sprite, self) and type(sprite) != self.friendtype:
                 self.hurt(sprite)
                 self.kill()
                 return
@@ -239,6 +244,8 @@ class Entity(FloatSprite):
         self.health -= hp
         if self.health <= 0:
             self.kill()
+            return
+        self.health = min(self.health, self.maxhealth)
 
     def setweapon(self, weapon):
         myweapon = self.weapons[weapon.kind]
@@ -384,6 +391,34 @@ class Enemy(Entity):
         self.reload()
 
 
+class Medicine(FloatSprite):
+    def __init__(self, x, y, type):
+        super().__init__(allgroup, medicinegroup)
+        self.friendtype = Player
+        self.hp = medicinespec[type][0]
+        self.image = support.loadImage(medicineimg[type])
+        self.setmask()
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+        self.setxy()
+
+    def update(self):
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(sprite, self) and type(sprite) == self.friendtype:
+                success = self.heal(sprite)
+                if success:
+                    return
+
+    def heal(self, patient):
+        if patient.health == patient.maxhealth:
+            return False
+        patient.suffer(-self.hp)
+        self.kill()
+        return True
+
+
 class Back(FloatSprite):
     def __init__(self):
         super().__init__(allgroup)
@@ -475,6 +510,10 @@ def generatelevel(level):
                 Tile(x, y, level[y][x])
             elif level[y][x] != ' ':
                 Tile(x, y, support.MAINTYPE)
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] in medicineimg:
+                Medicine(x, y, level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in weaponimg:
