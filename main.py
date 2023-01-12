@@ -12,40 +12,44 @@ def main():
 
 
 def action():
-    shooting = True
-    timing = 0
+    a = pygame.mixer.Sound('data/music/auto.wav')
+    p = pygame.mixer.Sound('data/music/pistol.wav')
+    s = pygame.mixer.Sound('data/music/shotgun.wav')
+    SONG_END = pygame.USEREVENT + 1
+    playlist = support.make_playlist()
+    pygame.mixer.music.load(playlist[0])
+    playlist.pop(0)
+    pygame.mixer.music.play()
+    pygame.mixer.music.queue(playlist[0])
+    playlist.pop(0)
+    pygame.mixer.music.set_endevent(SONG_END)
     screen = pygame.display.set_mode()
+    pygame.display.set_caption('DOOM: SARATOV EDITION')
     support.WINDOWWIDTH, support.WINDOWHEIGHT = \
-        pygame.display.get_window_size()
+        screen.get_size()
     shower = object.Shower()
     clock = pygame.time.Clock()
     while shower.isgoing():
         for event in pygame.event.get():
+            if event.type == SONG_END:
+                if len(playlist) > 0:
+                    pygame.mixer.music.queue(playlist[0])
+                    playlist.pop(0)
+                    if len(playlist) == 0:
+                        playlist = make_playlist()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     shower.stop()
                 if event.key == pygame.K_e:
-                    shower.player.take_weapon()
+                    shower.take()
                 if event.key == pygame.K_1:
-                    shower.player.change_weapon('shotgun')
+                    shower.change(support.DUKE)
                 if event.key == pygame.K_2:
-                    shower.player.change_weapon('pistol')
+                    shower.change(support.PISTOL)
                 if event.key == pygame.K_3:
-                    shower.player.change_weapon('automat')
+                    shower.change(support.AUTOMAT)
                 if event.key == pygame.K_4:
-                    shower.player.change_weapon("knife")
-        pressed = pygame.mouse.get_pressed()
-        pos = pygame.mouse.get_pos()
-        if pressed[0]:
-            if shooting:
-                shower.player.shoot(pos)
-                delay = shower.player.get_reload()
-                timing = delay
-                shooting = False
-        if timing != 0:
-            timing -= 1
-        else:
-            shooting = True
+                    shower.change(support.SHOTGUN)
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             shower.move(1, 0)
@@ -55,10 +59,15 @@ def action():
             shower.move(0, 1)
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             shower.move(0, -1)
-        object.bullets.update()
+        if keys[pygame.K_r]:
+            shower.reload()
+        buttons = pygame.mouse.get_pressed()
+        if buttons[0]:
+            shower.shoot(pygame.mouse.get_pos())
+        shower.update()
         shower.draw(screen)
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(support.FPS)
 
 
 if __name__ == "__main__":

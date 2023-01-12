@@ -1,266 +1,482 @@
+import sys
 import pygame
 import support
-import random
-import math
+pygame.init()
+k = pygame.mixer.Sound('data/music/knife.wav')
+a = pygame.mixer.Sound('data/music/auto.wav')
+p = pygame.mixer.Sound('data/music/pistol.wav')
+s = pygame.mixer.Sound('data/music/shotgun.wav')
+r = pygame.mixer.Sound('data/music/reload.wav')
 allgroup = pygame.sprite.Group()
-tilegroup = pygame.sprite.Group()
-herogroup = pygame.sprite.Group()
-backgroup = pygame.sprite.Group()
 wallgroup = pygame.sprite.Group()
-shotguns = pygame.sprite.Group()
-automats = pygame.sprite.Group()
-pistols = pygame.sprite.Group()
-knifes = pygame.sprite.Group()
-bullets = pygame.sprite.Group()
-tileimg = {'1': 'lava.png', '2': 'wall.png'}
-playerimg = 'playerknife.png'
-backimg = 'back.png'
-shotgunimg = 'shotgun.png'
-automatimg = 'automat.png'
-pistolimg = 'pistol.png'
-bulletimg = 'bullet.png'
-shotgun_list = []
-pistol_list = []
-automat_list = []
+herogroup = pygame.sprite.Group()
+enemygroup = pygame.sprite.Group()
+entitygroup = pygame.sprite.Group()
+bulletgroup = pygame.sprite.Group()
+weapongroup = pygame.sprite.Group()
+medicinegroup = pygame.sprite.Group()
+armorgroup = pygame.sprite.Group()
+emptyimg = 'back/empty.png'
+tileimg = {'1': 'tile/ground.png',
+           '2': 'tile/wall.png'}
+bulletimg = {'z': 'back/empty.png',
+             'y': 'bullet/usual.png',
+             'x': 'bullet/usual.png',
+             'w': 'bullet/usual.png'}
+bulletspec = {'z': (40, 300, 2),
+              'y': (50, 600, 25),
+              'x': (40, 400, 10),
+              'w': (100, 300, 5)}
+medicineimg = {'+': 'medicine/20.png',
+               '*': 'medicine/80.png'}
+medicinespec = {'+': (20,),
+                '*': (80,)}
+armorimg = {'[': 'armor/1.25.png',
+            '{': 'armor/2.5.png'}
+armorspec = {'[': (1.25,),
+             '{': (2.5,)}
+weaponimg = {'z': 'weapon/duke.png',
+             'y': 'weapon/pistol.png',
+             'x': 'weapon/automat.png',
+             'w': 'weapon/shotgun.png'}
+weaponspec = {'z': (support.DUKE, 15, support.NOLIMITWEAPON, 1, 1, 6, 700, 0),
+              'y': (support.PISTOL, 1, 10, 10, 10, 2, 600, 1000),
+              'x': (support.AUTOMAT, 1, 3, 30, 30, 4, 200, 2000),
+              'w': (support.SHOTGUN, 12, 7, 1, 7, 6, 800, 600)}
+playerimg = {support.DUKE: 'player/duke.png',
+             support.PISTOL: 'player/pistol.png',
+             support.AUTOMAT: 'player/automat.png',
+             support.SHOTGUN: 'player/shotgun.png'}
+enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
+                  support.PISTOL: 'enemy/pistol.png',
+                  support.AUTOMAT: 'enemy/automat.png',
+                  support.SHOTGUN: 'enemy/shotgun.png'}}
+entityspec = {'@': (100, ('z',)),
+              'a': (50, ('y',))}
+backimg = 'back/dungeon.png'
 
 
-class Tile(pygame.sprite.Sprite):
-    def __init__(self, x, y, type):
-        super().__init__(allgroup)
-        self.add(tilegroup)
-        if type == '2':
-            self.add(wallgroup)
-        self.image = support.loadImage(tileimg[type])
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
+class FloatSprite(pygame.sprite.Sprite):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.x, self.y = 0, 0
 
-
-class Pistol(pygame.sprite.Sprite):
-    def __init__(self, x, y, damage, ammo):
-        super().__init__(allgroup)
-        self.add(pistols)
-        self.image = support.loadImage(pistolimg)
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
-        self.dx = support.DELTAX
-        self.dy = support.DELTAY
-        self.x = self.rect.x
-        self.y = self.rect.y
-        self.dam = damage
-        self.ammo = ammo
-
-    def get_info(self):
-        return [self.dam, self.ammo]
-
-
-class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, range, dam, deg):
-        super().__init__(allgroup)
-        self.add(bullets)
-        self.x = x
-        self.y = y
-        self.deg = deg
-        self.range = range
-        self.dam = dam
-        self.image = support.loadImage(bulletimg)
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(
-            x + 40,
-            y + 40)
-
-    def update(self):
-        self.rect = self.rect.move(math.cos(self.deg) * 80, math.sin(self.deg) * 80)
-        self.exist = True
-        for sprite in wallgroup:
-            if pygame.sprite.collide_mask(self, sprite):
-                self.exist = False
-        if not self.exist:
-            self.kill()
-
-
-class Shotgun(pygame.sprite.Sprite):
-    def __init__(self, x, y, damage, ammo):
-        super().__init__(allgroup)
-        self.add(shotguns)
-        self.image = support.loadImage(shotgunimg)
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
-        self.dx = support.DELTAX
-        self.dy = support.DELTAY
-        self.x = self.rect.x
-        self.y = self.rect.y
-        self.dam = damage
-        self.ammo = ammo
-
-    def get_info(self):
-        return [self.dam, self.ammo]
-
-
-class Automat(pygame.sprite.Sprite):
-    def __init__(self, x, y, damage, ammo):
-        super().__init__(allgroup)
-        self.add(automats)
-        self.image = support.loadImage(automatimg)
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
-        self.dx = support.DELTAX
-        self.dy = support.DELTAY
-        self.x = self.rect.x
-        self.y = self.rect.y
-        self.dam = damage
-        self.ammo = ammo
-
-    def get_info(self):
-        return [self.dam, self.ammo]
-
-
-class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__(allgroup)
-        self.add(herogroup)
-        self.sg = False
-        self.ag = False
-        self.pis = False
-        self.automats = []
-        self.pistols = []
-        self.shotguns = []
-        self.now_weapon = "knife"
-        self.image = support.loadImage(playerimg)
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
-        self.dx = support.DELTAX
-        self.dy = support.DELTAY
+    def setxy(self):
         self.x = self.rect.x
         self.y = self.rect.y
 
-    def get_reload(self):
-        if self.now_weapon == "knife":
-            return 180
-        elif self.now_weapon == "pistol":
-            return 60
-        elif self.now_weapon == "automat":
-            return 12
-        else:
-            return 120
-
-    def update(self, key, *args):
-        if key == support.MOVEKEY:
-            self.move(*args)
-
-    def move(self, dx, dy):
-        self.x += dx * self.dx
-        self.y += dy * self.dy
+    def syncxy(self):
         self.rect.x = self.x
         self.rect.y = self.y
+
+    def setmask(self):
+        self.mask = pygame.mask.from_surface(self.image)
+
+
+class Tile(FloatSprite):
+    def __init__(self, x, y, type):
+        super().__init__(allgroup)
+        if type in support.WALLTYPES:
+            self.add(wallgroup)
+        self.image = support.loadImage(tileimg[type])
+        self.setmask()
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+        self.setxy()
+
+
+class Bullet(FloatSprite):
+    def __init__(self, x, y, sin, cos, friend, type):
+        super().__init__(allgroup, bulletgroup)
+        self.dist = 0
+        self.sin = sin
+        self.cos = cos
+        self.shift, self.maxrange, self.damage = bulletspec[type]
+        self.image = support.loadImage(bulletimg[type])
+        self.setmask()
+        self.rect = self.image.get_rect().move(x, y)
+        self.rect = self.rect.move(-self.rect.w // 2, -self.rect.h // 2)
+        self.friendtype = friend
+        self.setxy()
+
+    def update(self):
+        self.x += self.shift * self.cos
+        self.y += self.shift * self.sin
+        self.syncxy()
+        self.dist += self.shift
+        if self.dist >= self.maxrange:
+            self.damage = 0
         for sprite in wallgroup:
-            if pygame.sprite.collide_mask(self, sprite):
-                self.move(-dx, -dy)
+            if pygame.sprite.collide_rect(sprite, self) and type(sprite) != self.friendtype:
+                self.hurt(sprite)
+                self.kill()
                 return
-        for sprite in automat_list:
-            if pygame.sprite.collide_mask(self, sprite) and self.ag is False:
-                self.ag = True
-                self.automats = sprite.get_info()
-                sprite.kill()
-        for sprite in pistol_list:
-            if pygame.sprite.collide_mask(self, sprite) and self.pis is False:
-                self.pis = True
-                self.pistols = sprite.get_info()
-                sprite.kill()
-        for sprite in shotgun_list:
-            if pygame.sprite.collide_mask(self, sprite) and self.sg is False:
-                self.sg = True
-                self.shotguns = sprite.get_info()
-                sprite.kill()
 
-    def take_weapon(self):
-        for sprite in automat_list:
-            if pygame.sprite.collide_mask(self, sprite) and self.ag is True:
-                self.ag = True
-                self.automats = sprite.get_info()
-                sprite.kill()
-        for sprite in pistol_list:
-            if pygame.sprite.collide_mask(self, sprite) and self.pis is True:
-                self.pis = True
-                self.pistols = sprite.get_info()
-                sprite.kill()
-        for sprite in shotgun_list:
-            if pygame.sprite.collide_mask(self, sprite) and self.sg is True:
-                self.sg = True
-                self.shotguns = sprite.get_info()
-                sprite.kill()
+    def hurt(self, target):
+        if not self.damage:
+            return
+        if not isinstance(target, Entity):
+            return
+        target.suffer(self.damage)
 
-    def change_weapon(self, weapon):
-        if weapon == 'shotgun':
-            if self.sg is True:
-                self.now_weapon = 'shotgun'
-        elif weapon == 'pistol':
-            if self.pis is True:
-                self.now_weapon = 'pistol'
-        elif weapon == 'automat':
-            if self.ag is True:
-                self.now_weapon = 'automat'
-        elif weapon == 'knife':
-            self.now_weapon = 'knife'
-        playerimg = 'player' + self.now_weapon + '.png'
-        self.image = support.loadImage(playerimg)
+
+class Weapon(FloatSprite):
+    def __init__(self, x, y, type):
+        super().__init__(allgroup, weapongroup)
+        self.type = type
+        self.kind = weaponspec[self.type][0]
+        self.friendtype = None
+        self.host = None
+        self.bps = weaponspec[self.type][1]
+        self.ammo = weaponspec[self.type][2]
+        self.store = weaponspec[self.type][3]
+        self.maxstore = weaponspec[self.type][4]
+        self.nowstore = self.maxstore
+        self.scatter = weaponspec[self.type][5]
+        self.shoottime = weaponspec[self.type][6]
+        self.reloadtime = weaponspec[self.type][7]
+        self.beforenextshoot = 0
+        self.clock = pygame.time.Clock()
+        self.image = support.loadImage(weaponimg[self.type])
+        self.setmask()
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+        self.setxy()
+
+    def merge(self, other):
+        host1, host2 = self.host, other.host
+        self.sethost(host2)
+        other.sethost(host1)
+
+    def addammo(self, ammo):
+        if self.getammo() == support.NOLIMITWEAPON:
+            return
+        self.ammo += ammo
+
+    def getammo(self):
+        return self.ammo
+
+    def sethost(self, host):
+        if isinstance(host, Entity):
+            self.x = host.x
+            self.y = host.y
+            self.syncxy()
+            self.image = support.loadImage(emptyimg)
+        else:
+            self.image = support.loadImage(weaponimg[self.type])
+        self.setmask()
+        self.host = host
+        self.friendtype = type(self.host)
+
+    def update(self):
+        if self.host is None:
+            return
+        self.x = self.host.x
+        self.y = self.host.y
+        self.syncxy()
 
     def shoot(self, pos):
-        self.hor = pos[0] - (support.WINDOWWIDTH // 2)
-        self.ver = pos[1] - (support.WINDOWHEIGHT // 2)
-        self.tg = self.ver / self.hor
-        self.deg = (math.atan(self.tg))
-        if self.deg < 0:
-            self.deg += 2 * math.pi
-        if self.hor < 0:
-            if self.ver < 0:
-                self.deg += math.pi
-            else:
-                self.deg -= math.pi
-        if self.now_weapon == "knife":
-            pass
-        elif self.now_weapon == "pistol":
-            if self.pistols[1] != 0:
-                bullet = Bullet(self.x, self.y, 700, self.pistols[0], self.deg)
-                self.pistols[1] -= 1
-        elif self.now_weapon == "automat":
-            if self.automats[1] != 0:
-                self.change = random.randint(-5, 5)
-                self.change = self.change * math.pi / 180
-                self.deg += self.change
-                bullet = Bullet(self.x, self.y, 700, self.automats[0], self.deg)
-                self.automats[1] -= 1
-        elif self.now_weapon == "shotgun":
-            if self.shotguns[1] != 0:
-                for i in range(12):
-                    self.change = random.randint(-30 + (5 * i), -30 + (5 + 5 * i))
-                    self.change = self.change * math.pi / 180
-                    self.degi = self.deg + self.change
-                    bullet = Bullet(self.x, self.y, 700, self.shotguns[0], self.degi)
-                self.shotguns[1] -= 1
+        self.beforenextshoot -= self.clock.tick()
+        if self.ammo == support.NOLIMITWEAPON:
+            self.nowstore = 1
+        if not self.nowstore:
+            return
+        if self.beforenextshoot > 0:
+            return
+        if self.type == "w":
+            s.play()
+        elif self.type == "y":
+            p.play()
+        elif self.type == "x":
+            a.play()
+        else:
+            k.play()
+        self.nowstore -= 1
+        cx = self.x + self.rect.w // 2
+        cy = self.y + self.rect.h // 2
+        px, py = pos
+        px -= cx
+        py -= cy
+        for _ in range(self.bps):
+            sin, cos = support.calculateDegree(px, py, self.scatter)
+            Bullet(cx, cy, sin, cos, self.friendtype, self.type)
+        self.beforenextshoot = self.shoottime
+
+    def reload(self):
+        self.beforenextshoot -= self.clock.tick()
+        if self.ammo == support.NOLIMITWEAPON:
+            return
+        if self.beforenextshoot > 0:
+            return
+        if not self.ammo:
+            return
+        if self.nowstore == self.maxstore:
+            return
+        r.play()
+        self.ammo -= 1
+        self.nowstore = min(self.maxstore, self.nowstore + self.store)
+        self.beforenextshoot = self.reloadtime
+        return
 
 
-class Back(pygame.sprite.Sprite):
+class Entity(FloatSprite):
+    def __init__(self, x, y, w, h, type, imglist, curslot):
+        super().__init__(allgroup, wallgroup, entitygroup)
+        self.weapons = {support.DUKE: None,
+                        support.PISTOL: None,
+                        support.AUTOMAT: None,
+                        support.SHOTGUN: None}
+        self.imglist = imglist
+        self.armor = 1
+        self.w = w
+        self.h = h
+        self.health = entityspec[type][0]
+        self.maxhealth = self.health
+        self.currentwp = support.MAINSLOT
+        for t in entityspec[type][1]:
+            weapon = Weapon(0, 0, t)
+            self.setweapon(weapon)
+        if curslot is not None:
+            self.change(curslot)
+        self.frames = []
+        self.curframe = -1
+        self.cut(self.imglist[self.currentwp])
+        self.animate()
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+        self.setxy()
+        self.dx = 0
+        self.dy = 0
+        self.rx = 0
+        self.ry = 0
+
+    def getweapon(self):
+        return self.weapons[self.currentwp]
+
+    def suffer(self, hp):
+        if hp > 0:
+            hp /= self.armor
+        self.health -= hp
+        if self.health <= 0:
+            self.kill()
+            return
+        self.health = min(self.health, self.maxhealth)
+
+    def setweapon(self, weapon):
+        myweapon = self.weapons[weapon.kind]
+        if myweapon is not None:
+            weapon.merge(myweapon)
+            if weapon.type == myweapon.type:
+                weapon.addammo(myweapon.getammo())
+                myweapon.addammo(-myweapon.getammo())
+        else:
+            weapon.sethost(self)
+        self.currentwp = weapon.kind
+        self.weapons[self.currentwp] = weapon
+        img = self.imglist[self.currentwp]
+        self.cut(img)
+
+    def cut(self, img):
+        sheet = support.loadImage(img)
+        cols = sheet.get_width() // self.w
+        rows = sheet.get_height() // self.h
+        self.frames = [sheet.subsurface(
+            pygame.Rect((self.w * (ind % cols), self.h * (ind // cols)), (self.w, self.h)))
+        for ind in range(cols * rows)]
+        self.masks = [pygame.mask.from_surface(frame) for frame in self.frames]
+
+    def animate(self):
+        self.curframe = (self.curframe + 1) % len(self.frames)
+        self.image = self.frames[self.curframe]
+        self.mask = self.masks[self.curframe]
+
+    def move(self, dx, dy, check=True, good=None):
+        self.x += self.dx * dx
+        self.y += self.dy * dy
+        self.syncxy()
+        if not check:
+            return
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(self, sprite):
+                if type(sprite) != good and sprite != self:
+                    self.move(-dx, -dy, False)
+                    return
+        return
+
+    def detect(self, target):
+        difx = abs(self.x - target.x) - support.TILEWIDTH
+        dify = abs(self.y - target.y) - support.TILEHEIGHT
+        if difx > self.rx or dify > self.ry:
+            return
+        self.shoot((target.x + target.w // 2, target.y + target.h // 2))
+        self.reload()
+        if difx < 0 and dify < 0:
+            return
+        dx = (target.x > self.x) - (self.x > target.x)
+        dy = (target.y > self.y) - (self.y > target.y)
+        self.move(dx, 0)
+        self.move(0, dy)
+        return
+
+    def shoot(self, pos):
+        weapon = self.getweapon()
+        if weapon is None:
+            return
+        weapon.shoot(pos)
+        if not weapon.getammo() and not weapon.nowstore:
+            self.change(support.MAINSLOT)
+
+    def reload(self):
+        weapon = self.getweapon()
+        if weapon is None:
+            return
+        weapon.reload()
+        if not weapon.getammo() and not weapon.nowstore:
+            self.change(support.MAINSLOT)
+
+    def take(self):
+        for sprite in weapongroup:
+            if pygame.sprite.collide_mask(self, sprite):
+                self.setweapon(sprite)
+                return
+
+    def change(self, key):
+        weapon = self.weapons[key]
+        if weapon is None:
+            return
+        if not weapon.getammo() and not weapon.nowstore:
+            return
+        self.currentwp = key
+        img = self.imglist[self.currentwp]
+        self.cut(img)
+
+    def update(self, *args):
+        if not args:
+            return
+        key = args[0]
+        args = args[1:]
+        if key == support.ANIMATEKEY:
+            self.animate(*args)
+        if key == support.MOVEKEY:
+            self.move(*args)
+        if key == support.DETECTKEY:
+            self.detect(*args)
+        if key == support.SHOOTKEY:
+            self.shoot(*args)
+        if key == support.RELOADKEY:
+            self.reload(*args)
+        if key == support.TAKEKEY:
+            self.take(*args)
+        if key == support.CHANGEKEY:
+            self.change(*args)
+
+
+class Player(Entity):
+    def __init__(self, x, y):
+        super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
+                         support.PLAYERTYPE, playerimg,
+                         support.DUKE)
+        self.add(herogroup)
+        self.dx = support.PDX
+        self.dy = support.PDY
+
+
+class Enemy(Entity):
+    def __init__(self, x, y, type):
+        super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
+                         type, enemyimg[type], support.DUKE)
+        self.add(enemygroup)
+        self.dx = support.EDX
+        self.dy = support.EDY
+        self.rx = support.MXRX * support.TILEWIDTH
+        self.ry = support.MXRY * support.TILEHEIGHT
+
+    def move(self, dx, dy, check=True, good=None):
+        super().move(dx, dy, check, Enemy)
+
+    def reload(self):
+        weapon = self.getweapon()
+        weapon.ammo = 2
+        if weapon.nowstore:
+            return
+        super().reload()
+
+    def shoot(self, pos):
+        super().shoot(pos)
+        self.reload()
+
+
+class Medicine(FloatSprite):
+    def __init__(self, x, y, type):
+        super().__init__(allgroup, medicinegroup)
+        self.friendtype = Player
+        self.hp = medicinespec[type][0]
+        self.image = support.loadImage(medicineimg[type])
+        self.setmask()
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+        self.setxy()
+
+    def update(self):
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(sprite, self) and type(sprite) == self.friendtype:
+                success = self.heal(sprite)
+                if success:
+                    return
+
+    def heal(self, patient):
+        if patient.health == patient.maxhealth:
+            return False
+        patient.suffer(-self.hp)
+        self.kill()
+        return True
+
+
+class Armor(FloatSprite):
+    def __init__(self, x, y, type):
+        super().__init__(allgroup, armorgroup)
+        self.friendtype = Player
+        self.coeff = armorspec[type][0]
+        self.image = support.loadImage(armorimg[type])
+        self.setmask()
+        self.rect = self.image.get_rect().move(
+            support.TILEWIDTH * x,
+            support.TILEHEIGHT * y
+        )
+        self.setxy()
+
+    def update(self):
+        for sprite in wallgroup:
+            if pygame.sprite.collide_mask(sprite, self) and type(sprite) == self.friendtype:
+                success = self.protect(sprite)
+                if success:
+                    return
+
+    def protect(self, patient):
+        if patient.armor >= self.coeff:
+            return False
+        patient.armor = self.coeff
+        self.kill()
+        return True
+
+
+class Back(FloatSprite):
     def __init__(self):
-        super().__init__()
-        self.add(backgroup)
+        super().__init__(allgroup)
         self.image = pygame.transform.scale(support.loadImage(backimg),
                                             (support.WINDOWWIDTH, support.WINDOWHEIGHT))
-        self.rect = self.image.get_rect().move(0, 0)
+        self.rect = self.image.get_rect()
+        self.rect.x = 0
+        self.rect.y = 0
+        self.setxy()
 
 
 class Camera:
@@ -269,11 +485,9 @@ class Camera:
         self.dy = 0
 
     def apply(self, obj):
-        obj.rect.x += self.dx
-        obj.rect.y += self.dy
-        if isinstance(obj, Player):
-            obj.x = obj.rect.x
-            obj.y = obj.rect.y
+        obj.x += self.dx
+        obj.y += self.dy
+        obj.syncxy()
 
     def update(self, target):
         self.dx = -(target.rect.x + target.rect.w // 2 - support.WINDOWWIDTH // 2)
@@ -284,7 +498,13 @@ class Shower:
     def __init__(self, levelnum=1):
         self.setLevel(levelnum)
         self.show = True
+        self.upd = 0
         self.camera = Camera()
+
+    def update(self):
+        self.detect()
+        self.animate()
+        allgroup.update()
 
     def stop(self):
         self.show = False
@@ -297,54 +517,64 @@ class Shower:
         level = support.loadLevel(self.levelnum)
         self.player = generatelevel(level)
 
+    def animate(self):
+        if not self.upd:
+            entitygroup.update(support.ANIMATEKEY)
+        self.upd += 1
+        self.upd %= support.ANIMATEREGULAR
+
     def move(self, dx, dy):
         herogroup.update(support.MOVEKEY, dx, dy)
 
+    def detect(self):
+        enemygroup.update(support.DETECTKEY, self.player)
+
+    def shoot(self, pos):
+        herogroup.update(support.SHOOTKEY, pos)
+
+    def reload(self):
+        herogroup.update(support.RELOADKEY)
+
+    def take(self):
+        herogroup.update(support.TAKEKEY)
+
+    def change(self, key):
+        herogroup.update(support.CHANGEKEY, key)
+
     def draw(self, screen):
-        backgroup.draw(screen)
         self.camera.update(self.player)
         for sprite in allgroup:
+            if type(sprite) == Back:
+                continue
             self.camera.apply(sprite)
         allgroup.draw(screen)
-        herogroup.draw(screen)
 
 
 def generatelevel(level):
+    player = None
     Back()
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x] != ' ':
+            if level[y][x] in tileimg:
                 Tile(x, y, level[y][x])
-    pl = False
-    while pl is False:
-        y = random.randint(0, len(level) - 1)
-        x = random.randint(0, len(level[y]) - 1)
-        if level[y][x] == "1":
-            player = Player(x, y)
-            pl = True
-    for i in range(2):
-        pl = False
-        while pl is False:
-            y = random.randint(0, len(level) - 1)
-            x = random.randint(0, len(level[y]) - 1)
-            if level[y][x] == "1":
-                shotgun_list.append(Shotgun(x, y, 100, 2))
-                pl = True
-    for i in range(2):
-        pl = False
-        while pl is False:
-            y = random.randint(0, len(level) - 1)
-            x = random.randint(0, len(level[y]) - 1)
-            if level[y][x] == "1":
-                pistol_list.append(Pistol(x, y, 100, 10))
-                pl = True
-    for i in range(2):
-        pl = False
-        while pl is False:
-            y = random.randint(0, len(level) - 1)
-            x = random.randint(0, len(level[y]) - 1)
-            if level[y][x] == "1":
-                automat_list.append(Automat(x, y, 100, 30))
-                pl = True
+            elif level[y][x] != ' ':
+                Tile(x, y, support.MAINTYPE)
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] in medicineimg:
+                Medicine(x, y, level[y][x])
+            if level[y][x] in armorimg:
+                Armor(x, y, level[y][x])
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] in weaponimg:
+                Weapon(x, y, level[y][x])
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] in enemyimg:
+                Enemy(x, y, level[y][x])
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == support.PLAYERTYPE:
+                player = Player(x, y)
     return player
-
