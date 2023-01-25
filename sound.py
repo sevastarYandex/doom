@@ -1,8 +1,8 @@
 from PIL import Image
 
 
-f = open("map.txt", 'w')
-im = Image.open("арта.png")
+f = open("1.txt", 'w')
+im = Image.open("art.png")
 pixels = im.load()
 x, y = im.size
 ans = []

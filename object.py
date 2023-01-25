@@ -38,6 +38,7 @@ medicineimg = {'+': 'medicine/20.png',
                '*': 'medicine/80.png'}
 medicinespec = {'+': (20,),
                 '*': (80,)}
+backgroup = pygame.sprite.Group()
 armorimg = {'}': 'armor/1.25.png',
             '{': 'armor/2.5.png'}
 armorspec = {'}': (1.25,),
@@ -96,6 +97,30 @@ class FloatSprite(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
 
+class Field(FloatSprite):
+    def __init__(self):
+        super().__init__(allgroup)
+        self.image = support.loadImage(emptyimg)
+        self.rect = self.image.get_rect()
+        self.rect.x = 0
+        self.rect.y = 0
+
+    def draw(self, screen):
+        x1 = -self.x // support.TILEWIDTH
+        y1 = -self.y // support.TILEHEIGHT
+        x2 = (-self.x + support.WINDOWWIDTH) // support.TILEWIDTH
+        y2 = (-self.y + support.WINDOWHEIGHT) // support.TILEHEIGHT
+        for y in range(max(0, y1), min(y2 + 1, len(level))):
+            for x in range(max(0, x1), min(x2 + 1, len(level[y]))):
+                obj = level[y][x]
+                if obj not in tileimg:
+                    obj = support.MAINTYPE
+                surf = tileimg[obj]
+                screen.blit(surf, pygame.Rect(x * support.TILEWIDTH + self.x,
+                                              y * support.TILEHEIGHT + self.y,
+                                              surf.get_width(), surf.get_height()))
+
+
 class Tile(FloatSprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup)
@@ -125,10 +150,6 @@ class Bullet(FloatSprite):
         self.x += self.shift * self.cos
         self.y += self.shift * self.sin
         self.syncxy()
-        x = int(self.x // 80)
-        x1 = int((self.x + 4) // 80)
-        y = int(self.y // 80)
-        y1 = int((self.y + 4) // 80)
         self.dist += self.shift
         if self.dist >= self.maxrange:
             self.damage = 0
@@ -137,7 +158,7 @@ class Bullet(FloatSprite):
                 self.hurt(sprite)
                 self.kill()
                 return
-        if level[y][x] == '2' or level[y][x1] == '2' or level[y1][x] == '2' or level[y1][x1] == '2':
+        if False: # тут
             self.kill()
             return
 
@@ -326,10 +347,6 @@ class Entity(FloatSprite):
     def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
         self.y += self.dy * dy
-        x = self.x // 80
-        x1 = (self.x + 79) // 80
-        y = self.y // 80
-        y1 = (self.y + 79) // 80
         self.syncxy()
         if not check:
             return
@@ -338,7 +355,7 @@ class Entity(FloatSprite):
                 if type(sprite) != good and sprite != self:
                     self.move(-dx, -dy, False)
                     return
-        if level[y][x] == '2' or level[y][x1] == '2' or level[y1][x] == '2' or level[y1][x1] == '2':
+        if False:
             self.move(-dx, -dy, False)
             return
         return
@@ -504,7 +521,7 @@ class Armor(FloatSprite):
 
 class Back(FloatSprite):
     def __init__(self):
-        super().__init__(allgroup)
+        super().__init__(backgroup)
         self.image = pygame.transform.scale(support.loadImage(backimg),
                                             (support.WINDOWWIDTH, support.WINDOWHEIGHT))
         self.rect = self.image.get_rect()
@@ -524,16 +541,21 @@ class Camera:
         obj.syncxy()
 
     def update(self, target):
-        self.dx = -(target.rect.x + target.rect.w // 2 - support.WINDOWWIDTH // 2)
-        self.dy = -(target.rect.y + target.rect.h // 2 - support.WINDOWHEIGHT // 2)
+        self.dx = -(target.x + target.w // 2 - support.WINDOWWIDTH // 2)
+        self.dy = -(target.y + target.h // 2 - support.WINDOWHEIGHT // 2)
 
 
 class Shower:
     def __init__(self, levelnum=1):
         self.show = True
         self.upd = 0
+        self.setTiles()
         self.camera = Camera()
-        self.player = generatelevel()
+        self.player, self.field = generatelevel()
+
+    def setTiles(self):
+        for type in tileimg:
+            tileimg[type] = support.loadImage(tileimg[type])
 
     def update(self):
         self.detect()
@@ -573,9 +595,13 @@ class Shower:
     def draw(self, screen):
         self.camera.update(self.player)
         for sprite in allgroup:
-            if type(sprite) == Back:
+            if type(sprite) == Back or type(sprite) == Field:
                 continue
             self.camera.apply(sprite)
+        backgroup.draw(screen)
+        self.field.x += self.camera.dx
+        self.field.y += self.camera.dy
+        self.field.draw(screen)
         allgroup.draw(screen)
 
     def retur_lev(self):
@@ -585,6 +611,7 @@ class Shower:
 def generatelevel():
     player = None
     Back()
+    field = Field()
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in medicineimg:
@@ -603,4 +630,4 @@ def generatelevel():
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:
                 player = Player(x, y)
-    return player
+    return player, field
