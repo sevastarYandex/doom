@@ -105,8 +105,7 @@ class Field(FloatSprite):
         super().__init__(allgroup)
         self.image = support.loadImage(emptyimg)
         self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
+        self.rect = self.rect.move(x, y)
         self.setxy()
 
     def draw(self, screen):
@@ -129,7 +128,7 @@ class Field(FloatSprite):
 
 
 class Bullet(FloatSprite):
-    def __init__(self, posi, x, y, sin, cos, friend, type, dist=0):
+    def __init__(self, x, y, sin, cos, friend, type, dist=0):
         super().__init__(allgroup, bulletgroup)
         self.dist = dist
         self.sin = sin
@@ -142,18 +141,15 @@ class Bullet(FloatSprite):
         self.rect = self.rect.move(-self.rect.w // 2, -self.rect.h // 2)
         self.friendtype = friend
         self.setxy()
-        self.spx, self.spy = posi
 
     def update(self):
         self.x += self.shift * self.cos
         self.y += self.shift * self.sin
-        self.spx += self.shift * self.cos
-        self.spy += self.shift * self.sin
-        x = int(self.spx // support.TILEWIDTH)
-        x1 = int((self.spx + self.rect.w) // support.TILEWIDTH)
-        y = int(self.spy // support.TILEHEIGHT)
-        y1 = int((self.spy + self.rect.h) // support.TILEHEIGHT)
         self.syncxy()
+        x = self.rect.x // support.TILEWIDTH
+        x1 = (self.rect.x + self.rect.w) // support.TILEWIDTH
+        y = self.rect.y // support.TILEHEIGHT
+        y1 = (self.rect.y + self.rect.h) // support.TILEHEIGHT
         self.dist += self.shift
         if self.dist >= self.maxrange:
             self.kill()
@@ -162,7 +158,7 @@ class Bullet(FloatSprite):
                 self.hurt(sprite)
                 self.kill()
                 return
-        if level[y][x] == '2' or level[y][x1] == '2' or level[y1][x] == '2' or level[y1][x1] == '2':
+        if support.WALLTYPES in (level[y][x], level[y][x1], level[y1][x], level[y1][x1]):
             self.kill()
             return
 
@@ -174,8 +170,7 @@ class Bullet(FloatSprite):
         target.suffer(self.damage)
 
     def __repr__(self):
-        return f"Bullet {(self.spx, self.spy)} " \
-               f"{self.x} {self.y} {self.sin} {self.cos} " \
+        return f"Bullet {self.x} {self.y} {self.sin} {self.cos} " \
                f"{self.friendtype} {self.type} {self.dist}"
 
 
@@ -243,7 +238,7 @@ class Weapon(FloatSprite):
         self.y = self.host.y
         self.syncxy()
 
-    def shoot(self, pos, posi):
+    def shoot(self, pos):
         self.beforenextshoot -= self.clock.tick()
         if self.ammo == support.NOLIMITWEAPON:
             self.nowstore = 1
@@ -267,7 +262,7 @@ class Weapon(FloatSprite):
         py -= cy
         for _ in range(self.bps):
             sin, cos = support.calculateDegree(px, py, self.scatter)
-            Bullet(posi, cx, cy, sin, cos, self.friendtype, self.type)
+            Bullet(cx, cy, sin, cos, self.friendtype, self.type)
         self.beforenextshoot = self.shoottime
 
     def reload(self):
@@ -315,8 +310,6 @@ class Entity(FloatSprite):
         self.animate()
         self.rect = self.image.get_rect().move(x, y)
         self.setxy()
-        self.stx = x
-        self.sty = y
         self.dx = 0
         self.dy = 0
         self.rx = 0
@@ -365,13 +358,11 @@ class Entity(FloatSprite):
     def move(self, dx, dy, check=True, good=None):
         self.x += self.dx * dx
         self.y += self.dy * dy
-        self.stx += self.dx * dx
-        self.sty += self.dy * dy
-        x = self.stx // support.TILEWIDTH
-        x1 = (self.stx + support.TILEWIDTH - 1) // support.TILEWIDTH
-        y = self.sty // support.TILEHEIGHT
-        y1 = (self.sty + support.TILEHEIGHT - 1) // support.TILEHEIGHT
         self.syncxy()
+        x = self.rect.x // support.TILEWIDTH
+        x1 = (self.rect.x + support.TILEWIDTH - 1) // support.TILEWIDTH
+        y = self.rect.y // support.TILEHEIGHT
+        y1 = (self.rect.y + support.TILEHEIGHT - 1) // support.TILEHEIGHT
         if not check:
             return
         for sprite in wallgroup:
@@ -379,10 +370,7 @@ class Entity(FloatSprite):
                 if sprite != self:
                     self.move(-dx, -dy, False)
                     return
-        if level[y][x:x+1] == ['2'] or \
-                level[y1][x:x+1] == ['2'] or \
-                level[y][x1:x1+1] == ['2'] or \
-                level[y1][x1:x1+1] == ['2']:
+        if level[y][x] == '2' or level[y1][x] == '2' or level[y][x1] == '2' or level[y1][x1] == '2':
             self.move(-dx, -dy, False)
             return
         return
@@ -406,8 +394,7 @@ class Entity(FloatSprite):
         weapon = self.getweapon()
         if weapon is None:
             return
-        posi = [self.stx + self.rect.w // 2, self.sty + self.rect.h // 2]
-        weapon.shoot(pos, posi)
+        weapon.shoot(pos)
         if not weapon.getammo() and not weapon.nowstore:
             self.change(support.MAINSLOT)
 
@@ -507,10 +494,7 @@ class Medicine(FloatSprite):
         self.hp = medicinespec[type][0]
         self.image = support.loadImage(medicineimg[type])
         self.setmask()
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
+        self.rect = self.image.get_rect().move(x, y)
         self.setxy()
 
     def update(self):
@@ -528,8 +512,8 @@ class Medicine(FloatSprite):
         return True
 
     def __repr__(self):
-        return f"Medicine {self.x // support.TILEWIDTH} " \
-               f"{self.y // support.TILEHEIGHT} {self.type}"
+        return f"Medicine {self.x} " \
+               f"{self.y} {self.type}"
 
 
 class Armor(FloatSprite):
@@ -540,10 +524,7 @@ class Armor(FloatSprite):
         self.coeff = armorspec[type][0]
         self.image = support.loadImage(armorimg[type])
         self.setmask()
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
+        self.rect = self.image.get_rect().move(x, y)
         self.setxy()
 
     def update(self):
@@ -561,8 +542,8 @@ class Armor(FloatSprite):
         return True
 
     def __repr__(self):
-        return f"Armor {self.x // support.TILEWIDTH} " \
-               f"{self.y // support.TILEHEIGHT} {self.type}"
+        return f"Armor {self.x} " \
+               f"{self.y} {self.type}"
 
 
 class Back(FloatSprite):
@@ -584,6 +565,11 @@ class Camera:
     def apply(self, obj):
         obj.x += self.dx
         obj.y += self.dy
+        obj.syncxy()
+
+    def disapply(self, obj):
+        obj.x -= self.dx
+        obj.y -= self.dy
         obj.syncxy()
 
     def update(self, target):
@@ -644,14 +630,12 @@ class Shower:
     def draw(self, screen):
         self.camera.update(self.player)
         for sprite in allgroup:
-            if type(sprite) == Back or type(sprite) == Field:
-                continue
             self.camera.apply(sprite)
         backgroup.draw(screen)
-        self.field.x += self.camera.dx
-        self.field.y += self.camera.dy
         self.field.draw(screen)
         allgroup.draw(screen)
+        for sprite in allgroup:
+            self.camera.disapply(sprite)
 
     def retur_lev(self):
         return self.level
@@ -664,9 +648,13 @@ def generatelevel():
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in medicineimg:
-                Medicine(x, y, level[y][x])
+                Medicine(x * support.TILEWIDTH,
+                         y * support.TILEHEIGHT,
+                         level[y][x])
             if level[y][x] in armorimg:
-                Armor(x, y, level[y][x])
+                Armor(x * support.TILEWIDTH,
+                      y * support.TILEHEIGHT,
+                      level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in weaponimg:
