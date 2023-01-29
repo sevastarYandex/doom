@@ -154,7 +154,7 @@ class Bullet(FloatSprite):
         if self.dist >= self.maxrange:
             self.kill()
         for sprite in wallgroup:
-            if pygame.sprite.collide_rect(sprite, self) and type(sprite) != self.friendtype:
+            if pygame.sprite.collide_rect(sprite, self):
                 self.hurt(sprite)
                 self.kill()
                 return
@@ -163,9 +163,9 @@ class Bullet(FloatSprite):
             return
 
     def hurt(self, target):
-        if not self.damage:
-            return
         if not isinstance(target, Entity):
+            return
+        if isinstance(target, self.friendtype):
             return
         target.suffer(self.damage)
 
