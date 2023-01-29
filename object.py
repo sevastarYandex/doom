@@ -71,7 +71,7 @@ enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
              support.PISTOL: 'enemy/pistol.png',
              support.AUTOMAT: 'enemy/automat.png',
              support.SHOTGUN: 'enemy/shotgun.png'}}
-entityspec = {'@': (200, ('z',)),
+entityspec = {'@': (100, ('z',)),
               'a': (50, ('y',)),
               'b': (50, ('z',)),
               'c': (50, ('x',)),
@@ -177,7 +177,7 @@ class Bullet(FloatSprite):
 
 
 class Weapon(FloatSprite):
-    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=1, host=None):
+    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=0, host=None):
         super().__init__(allgroup, weapongroup)
         self.type = type
         self.kind = weaponspec[self.type][0]
@@ -223,9 +223,6 @@ class Weapon(FloatSprite):
 
     def sethost(self, host):
         if isinstance(host, Entity):
-            self.x = host.x
-            self.y = host.y
-            self.syncxy()
             self.image = support.loadImage(emptyimg)
         else:
             self.image = support.loadImage(weaponimg[self.type])
@@ -302,8 +299,7 @@ class Entity(FloatSprite):
             self.health = health
         self.currentwp = support.MAINSLOT
         for t in entityspec[type][1]:
-            weapon = Weapon(0, 0, t)
-            self.setweapon(weapon)
+            self.setweapon(Weapon(0, 0, t))
         if curslot is not None:
             self.change(curslot)
         self.frames = []
@@ -326,6 +322,8 @@ class Entity(FloatSprite):
         self.health -= hp
         if self.health <= 0:
             self.kill()
+            for key in self.weapons:
+                weapon = self.weapons[key]
             return
         self.health = min(self.health, self.maxhealth)
 
@@ -588,6 +586,7 @@ class Shower:
         self.setTiles()
         self.camera = Camera()
         self.player, self.field = generatelevel()
+        self.dead = False
 
     def setTiles(self):
         for type in tileimg:
@@ -597,6 +596,10 @@ class Shower:
         self.detect()
         self.animate()
         allgroup.update()
+        if self.player.health <= 0:
+            for sprite in allgroup:
+                sprite.kill()
+            self.dead = True
 
     def stop(self):
         self.show = False
@@ -630,6 +633,8 @@ class Shower:
         herogroup.update(support.CHANGEKEY, key)
 
     def draw(self, screen):
+        if self.dead:
+            return
         self.camera.update(self.player)
         for sprite in allgroup:
             self.camera.apply(sprite)
