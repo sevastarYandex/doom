@@ -381,7 +381,6 @@ class Entity(FloatSprite):
         if difx > self.rx or dify > self.ry:
             return
         self.shoot((target.x + target.w // 2, target.y + target.h // 2))
-        self.reload()
         if difx < 0 and dify < 0:
             return
         dx = (target.x > self.x) - (self.x > target.x)
@@ -616,6 +615,7 @@ class Shower:
         enemygroup.update(support.DETECTKEY, self.player)
 
     def shoot(self, pos):
+        pos = (pos[0] - self.camera.dx, pos[1] - self.camera.dy)
         herogroup.update(support.SHOOTKEY, pos)
 
     def reload(self):
