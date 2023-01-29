@@ -147,27 +147,29 @@ class Bullet(FloatSprite):
         self.y += self.shift * self.sin
         self.syncxy()
         x = self.rect.x // support.TILEWIDTH
-        x1 = (self.rect.x + self.rect.w) // support.TILEWIDTH
+        x1 = (self.rect.x + self.rect.w - 1) // support.TILEWIDTH
         y = self.rect.y // support.TILEHEIGHT
-        y1 = (self.rect.y + self.rect.h) // support.TILEHEIGHT
+        y1 = (self.rect.y + self.rect.h - 1) // support.TILEHEIGHT
         self.dist += self.shift
         if self.dist >= self.maxrange:
             self.kill()
+            pass
         for sprite in wallgroup:
             if pygame.sprite.collide_rect(sprite, self):
-                self.hurt(sprite)
-                self.kill()
-                return
+                if self.hurt(sprite):
+                    self.kill()
+                    return
         if support.WALLTYPES in (level[y][x], level[y][x1], level[y1][x], level[y1][x1]):
             self.kill()
             return
 
     def hurt(self, target):
         if not isinstance(target, Entity):
-            return
+            return False
         if isinstance(target, self.friendtype):
-            return
+            return False
         target.suffer(self.damage)
+        return True
 
     def __repr__(self):
         return f"Bullet {self.x} {self.y} {self.sin} {self.cos} " \
