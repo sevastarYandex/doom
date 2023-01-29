@@ -105,7 +105,8 @@ class Field(FloatSprite):
         super().__init__(allgroup)
         self.image = support.loadImage(emptyimg)
         self.rect = self.image.get_rect()
-        self.rect = self.rect.move(x, y)
+        self.rect.x = x
+        self.rect.y = y
         self.setxy()
 
     def draw(self, screen):
@@ -153,7 +154,7 @@ class Bullet(FloatSprite):
         self.dist += self.shift
         if self.dist >= self.maxrange:
             self.kill()
-            pass
+            return
         for sprite in wallgroup:
             if pygame.sprite.collide_rect(sprite, self):
                 if self.hurt(sprite):
@@ -173,18 +174,16 @@ class Bullet(FloatSprite):
 
     def __repr__(self):
         return f"Bullet {self.x} {self.y} {self.sin} {self.cos} " \
-               f"{self.friendtype} {self.type} {self.dist}"
+               f"{self.friendtype.__name__} {self.type} {self.dist}"
 
 
 class Weapon(FloatSprite):
-    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=0, host=None):
+    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=0):
         super().__init__(allgroup, weapongroup)
         self.type = type
         self.kind = weaponspec[self.type][0]
         self.friendtype = None
         self.host = None
-        if host is not None:
-            self.sethost(host)
         self.bps = weaponspec[self.type][1]
         self.ammo = weaponspec[self.type][2]
         if ammo is not None:
@@ -206,7 +205,7 @@ class Weapon(FloatSprite):
 
     def __repr__(self):
         return f"Weapon {self.x} {self.y} {self.type} {self.ammo} " \
-               f"{self.nowstore} {self.beforenextshoot} {self.host}"
+               f"{self.nowstore} {self.beforenextshoot}"
 
     def merge(self, other):
         host1, host2 = self.host, other.host
@@ -223,6 +222,9 @@ class Weapon(FloatSprite):
 
     def sethost(self, host):
         if isinstance(host, Entity):
+            self.x = host.x
+            self.y = host.y
+            self.syncxy()
             self.image = support.loadImage(emptyimg)
         else:
             self.image = support.loadImage(weaponimg[self.type])
@@ -407,7 +409,7 @@ class Entity(FloatSprite):
 
     def take(self):
         for sprite in weapongroup:
-            if pygame.sprite.collide_mask(self, sprite):
+            if pygame.sprite.collide_mask(self, sprite) and sprite.host is None:
                 self.setweapon(sprite)
                 return
 
@@ -455,6 +457,11 @@ class Player(Entity):
         self.dx = support.PDX
         self.dy = support.PDY
 
+    def __repr__(self):
+        return f"Player {self.x} {self.y} {self.health} {self.armor} " + \
+               " ".join(map(Weapon.__repr__,
+                            filter(lambda x: x is not None, self.weapons.values())))
+
 
 class Enemy(Entity):
     def __init__(self, x, y, type, health=None, armor=1,
@@ -464,11 +471,17 @@ class Enemy(Entity):
                         support.SHOTGUN: None}):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
             type, enemyimg[type], None, health, armor, weapons)
+        self.type = type
         self.add(enemygroup)
         self.dx = support.EDX
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
         self.ry = support.MXRY * support.TILEHEIGHT
+
+    def __repr__(self):
+        return f"Enemy {self.x} {self.y} {self.type} {self.health} {self.armor} " + \
+               " ".join(map(Weapon.__repr__,
+                            filter(lambda x: x is not None, self.weapons.values())))
 
     def move(self, dx, dy, check=True, good=None):
         super().move(dx, dy, check, Enemy)
