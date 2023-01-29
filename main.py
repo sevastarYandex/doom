@@ -7,6 +7,8 @@ import support
 def main():
     pygame.init()
     action()
+    for sprite in object.allgroup:
+        print(sprite.__repr__())
     pygame.quit()
     sys.exit()
 
