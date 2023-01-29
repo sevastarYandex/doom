@@ -71,7 +71,7 @@ enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
              support.PISTOL: 'enemy/pistol.png',
              support.AUTOMAT: 'enemy/automat.png',
              support.SHOTGUN: 'enemy/shotgun.png'}}
-entityspec = {'@': (1000, ('z',)),
+entityspec = {'@': (200, ('z',)),
               'a': (50, ('y',)),
               'b': (50, ('z',)),
               'c': (50, ('x',)),
@@ -95,6 +95,9 @@ class FloatSprite(pygame.sprite.Sprite):
 
     def setmask(self):
         self.mask = pygame.mask.from_surface(self.image)
+
+    def __repr__(self):
+        return ''
 
 
 class Field(FloatSprite):
@@ -121,21 +124,10 @@ class Field(FloatSprite):
                                               surf.get_width(), surf.get_height()))
 
 
-class Tile(FloatSprite):
-    def __init__(self, x, y, type):
-        super().__init__(allgroup)
-        self.image = support.loadImage(tileimg[type])
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
-        self.setxy()
-
-
 class Bullet(FloatSprite):
-    def __init__(self,posi, x, y, sin, cos, friend, type):
+    def __init__(self, posi, x, y, sin, cos, friend, type, dist=0):
         super().__init__(allgroup, bulletgroup)
-        self.dist = 0
+        self.dist = dist
         self.sin = sin
         self.cos = cos
         self.shift, self.maxrange, self.damage = bulletspec[type]
@@ -152,10 +144,10 @@ class Bullet(FloatSprite):
         self.y += self.shift * self.sin
         self.spx += self.shift * self.cos
         self.spy += self.shift * self.sin
-        x = int(self.spx // 80)
-        x1 = int((self.spx + 4) // 80)
-        y = int(self.spy // 80)
-        y1 = int((self.spy + 4) // 80)
+        x = int(self.spx // support.TILEWIDTH)
+        x1 = int((self.spx + self.rect.w) // support.TILEWIDTH)
+        y = int(self.spy // support.TILEHEIGHT)
+        y1 = int((self.spy + self.rect.h) // support.TILEHEIGHT)
         self.syncxy()
         self.dist += self.shift
         if self.dist >= self.maxrange:
@@ -178,28 +170,29 @@ class Bullet(FloatSprite):
 
 
 class Weapon(FloatSprite):
-    def __init__(self, x, y, type):
+    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=0, friend=None, host=None):
         super().__init__(allgroup, weapongroup)
         self.type = type
         self.kind = weaponspec[self.type][0]
-        self.friendtype = None
-        self.host = None
+        self.friendtype = friend
+        self.host = host
         self.bps = weaponspec[self.type][1]
         self.ammo = weaponspec[self.type][2]
+        if ammo is not None:
+            self.ammo = ammo
         self.store = weaponspec[self.type][3]
         self.maxstore = weaponspec[self.type][4]
         self.nowstore = self.maxstore
+        if nowstore is not None:
+            self.nowstore = nowstore
         self.scatter = weaponspec[self.type][5]
         self.shoottime = weaponspec[self.type][6]
         self.reloadtime = weaponspec[self.type][7]
-        self.beforenextshoot = 0
+        self.beforenextshoot = bns
         self.clock = pygame.time.Clock()
         self.image = support.loadImage(weaponimg[self.type])
         self.setmask()
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
+        self.rect = self.image.get_rect().move(x, y)
         self.setxy()
 
     def merge(self, other):
@@ -279,18 +272,21 @@ class Weapon(FloatSprite):
 
 
 class Entity(FloatSprite):
-    def __init__(self, x, y, w, h, type, imglist, curslot):
-        super().__init__(allgroup, wallgroup, entitygroup)
-        self.weapons = {support.DUKE: None,
+    def __init__(self, x, y, w, h, type, imglist, curslot, health=None, armor=1,
+                 weapons={support.DUKE: None,
                         support.PISTOL: None,
                         support.AUTOMAT: None,
-                        support.SHOTGUN: None}
+                        support.SHOTGUN: None}):
+        super().__init__(allgroup, wallgroup, entitygroup)
+        self.weapons = weapons
         self.imglist = imglist
-        self.armor = 1
+        self.armor = armor
         self.w = w
         self.h = h
         self.health = entityspec[type][0]
         self.maxhealth = self.health
+        if health is not None:
+            self.health = health
         self.currentwp = support.MAINSLOT
         for t in entityspec[type][1]:
             weapon = Weapon(0, 0, t)
@@ -301,13 +297,10 @@ class Entity(FloatSprite):
         self.curframe = -1
         self.cut(self.imglist[self.currentwp])
         self.animate()
-        self.rect = self.image.get_rect().move(
-            support.TILEWIDTH * x,
-            support.TILEHEIGHT * y
-        )
+        self.rect = self.image.get_rect().move(x, y)
         self.setxy()
-        self.stx = x * 80
-        self.sty = y * 80
+        self.stx = x
+        self.sty = y
         self.dx = 0
         self.dy = 0
         self.rx = 0
@@ -358,10 +351,10 @@ class Entity(FloatSprite):
         self.y += self.dy * dy
         self.stx += self.dx * dx
         self.sty += self.dy * dy
-        x = self.stx // 80
-        x1 = (self.stx + 79) // 80
-        y = self.sty // 80
-        y1 = (self.sty + 79) // 80
+        x = self.stx // support.TILEWIDTH
+        x1 = (self.stx + support.TILEWIDTH - 1) // support.TILEWIDTH
+        y = self.sty // support.TILEHEIGHT
+        y1 = (self.sty + support.TILEHEIGHT - 1) // support.TILEHEIGHT
         self.syncxy()
         if not check:
             return
@@ -370,7 +363,10 @@ class Entity(FloatSprite):
                 if sprite != self:
                     self.move(-dx, -dy, False)
                     return
-        if level[y][x] == '2' or level[y1][x] == '2' or level[y][x1] == '2' or level[y1][x1] == '2':
+        if level[y][x:x+1] == ['2'] or \
+                level[y1][x:x+1] == ['2'] or \
+                level[y][x1:x1+1] == ['2'] or \
+                level[y1][x1:x1+1] == ['2']:
             self.move(-dx, -dy, False)
             return
         return
@@ -394,7 +390,7 @@ class Entity(FloatSprite):
         weapon = self.getweapon()
         if weapon is None:
             return
-        posi = [self.stx + 40, self.sty + 40]
+        posi = [self.stx + self.rect.w // 2, self.sty + self.rect.h // 2]
         weapon.shoot(pos, posi)
         if not weapon.getammo() and not weapon.nowstore:
             self.change(support.MAINSLOT)
@@ -445,19 +441,27 @@ class Entity(FloatSprite):
 
 
 class Player(Entity):
-    def __init__(self, x, y):
+    def __init__(self, x, y, health=None, armor=1,
+                 weapons={support.DUKE: None,
+                        support.PISTOL: None,
+                        support.AUTOMAT: None,
+                        support.SHOTGUN: None}):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
                          support.PLAYERTYPE, playerimg,
-                         support.DUKE)
+                         support.DUKE, health, armor, weapons)
         self.add(herogroup)
         self.dx = support.PDX
         self.dy = support.PDY
 
 
 class Enemy(Entity):
-    def __init__(self, x, y, type):
+    def __init__(self, x, y, type, health=None, armor=1,
+                 weapons={support.DUKE: None,
+                        support.PISTOL: None,
+                        support.AUTOMAT: None,
+                        support.SHOTGUN: None}):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
-            type, enemyimg[type], None)
+            type, enemyimg[type], None, health, armor, weapons)
         self.add(enemygroup)
         self.dx = support.EDX
         self.dy = support.EDY
@@ -534,6 +538,9 @@ class Armor(FloatSprite):
         self.kill()
         return True
 
+    # def __repr__(self):
+    #
+
 
 class Back(FloatSprite):
     def __init__(self):
@@ -547,9 +554,9 @@ class Back(FloatSprite):
 
 
 class Camera:
-    def __init__(self):
-        self.dx = 0
-        self.dy = 0
+    def __init__(self, dx=0, dy=0):
+        self.dx = dx
+        self.dy = dy
 
     def apply(self, obj):
         obj.x += self.dx
@@ -559,6 +566,9 @@ class Camera:
     def update(self, target):
         self.dx = -(target.x + target.w // 2 - support.WINDOWWIDTH // 2)
         self.dy = -(target.y + target.h // 2 - support.WINDOWHEIGHT // 2)
+
+    def __repr__(self):
+        return f"Camera {self.dx} {self.dy}"
 
 
 class Shower:
@@ -637,13 +647,18 @@ def generatelevel():
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in weaponimg:
-                Weapon(x, y, level[y][x])
+                Weapon(x * support.TILEWIDTH,
+                       y * support.TILEHEIGHT,
+                       level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in enemyimg:
-                Enemy(x, y, level[y][x])
+                Enemy(x * support.TILEWIDTH,
+                      y * support.TILEHEIGHT,
+                      level[y][x])
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:
-                player = Player(x, y)
+                player = Player(x * support.TILEWIDTH,
+                                y * support.TILEHEIGHT)
     return player, field
