@@ -180,11 +180,11 @@ class Bullet(FloatSprite):
 
 
 class Weapon(FloatSprite):
-    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=0, friend=None, host=None):
+    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=1, host=None):
         super().__init__(allgroup, weapongroup)
         self.type = type
         self.kind = weaponspec[self.type][0]
-        self.friendtype = friend
+        self.friendtype = None
         self.host = None
         if host is not None:
             self.sethost(host)
@@ -209,7 +209,7 @@ class Weapon(FloatSprite):
 
     def __repr__(self):
         return f"Weapon {self.x} {self.y} {self.type} {self.ammo} " \
-               f"{self.nowstore} {self.beforenextshoot} {self.friendtype} {self.host}"
+               f"{self.nowstore} {self.beforenextshoot} {self.host}"
 
     def merge(self, other):
         host1, host2 = self.host, other.host
