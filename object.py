@@ -81,6 +81,7 @@ entityspec = {'@': (100, ('z',)),
               'd': (50, ('w',))}
 backimg = 'back/dungeon.png'
 level = support.loadLevel(1)
+fonimg = 'back/fon.png'
 
 
 class FloatSprite(pygame.sprite.Sprite):
@@ -670,17 +671,16 @@ class Shower:
         self.show = True
         self.upd = 0
         self.setTiles()
-        self.camera = Camera()
-        self.player, self.field = loadsave('2023_01_30_22_31_41')
+        self.sost = support.MENU
         self.dead = False
-        self.stopped = False
+        Back()
 
     def setTiles(self):
         for type in tileimg:
             tileimg[type] = support.loadImage(tileimg[type])
 
     def update(self):
-        if self.stopped:
+        if self.sost != support.GAME:
             return
         self.detect()
         self.animate()
@@ -690,7 +690,7 @@ class Shower:
                 sprite.kill()
             h.play()
             self.dead = True
-            self.stopped = True
+            self.sost = support.GAMEMENU
 
     def savegame(self):
         time = datetime.datetime.now().strftime(
@@ -730,16 +730,23 @@ class Shower:
         herogroup.update(support.CHANGEKEY, key)
 
     def draw(self, screen):
-        if self.stopped:
-            return
-        self.camera.update(self.player)
-        for sprite in allgroup:
-            self.camera.apply(sprite)
         backgroup.draw(screen)
-        self.field.draw(screen)
-        allgroup.draw(screen)
-        for sprite in allgroup:
-            self.camera.disapply(sprite)
+        if self.sost == support.GAME:
+            self.camera.update(self.player)
+            for sprite in allgroup:
+                self.camera.apply(sprite)
+            self.field.draw(screen)
+            allgroup.draw(screen)
+            for sprite in allgroup:
+                self.camera.disapply(sprite)
+            return
+        if self.sost == support.MENU:
+            screen.fill('black')
+            img = support.loadImage(fonimg)
+            img = pygame.transform.scale(img, (support.WINDOWWIDTH,
+                                               support.WINDOWHEIGHT))
+            screen.blit(img, (0, 0))
+            return
 
     def retur_lev(self):
         return self.level
@@ -747,7 +754,6 @@ class Shower:
 
 def generatelevel():
     player = None
-    Back()
     field = Field()
     for y in range(len(level)):
         for x in range(len(level[y])):
@@ -805,7 +811,6 @@ def loadsave(name):
     data = data.rstrip('\n').split('\n')
     player = None
     field = None
-    Back()
     for line in data:
         res = createman(line)
         if res[0] == 'PLAYER':

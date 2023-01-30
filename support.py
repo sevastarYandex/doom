@@ -3,6 +3,11 @@ import os
 import sys
 import math
 import random
+MENU = 1
+RULE = 2
+SAVE = 3
+GAME = 4
+GAMEMENU = 5
 DUKE = 1
 PISTOL = 2
 AUTOMAT = 3
