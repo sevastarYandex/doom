@@ -13,6 +13,8 @@ s = pygame.mixer.Sound('data/music/shotgun.wav')
 s.set_volume(0.5)
 r = pygame.mixer.Sound('data/music/reload.wav')
 r.set_volume(0.5)
+h = pygame.mixer.Sound('data/music/aaaaaa.wav')
+h.set_volume(1)
 allgroup = pygame.sprite.Group()
 wallgroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
@@ -678,12 +680,15 @@ class Shower:
             tileimg[type] = support.loadImage(tileimg[type])
 
     def update(self):
+        if self.stopped:
+            return
         self.detect()
         self.animate()
         allgroup.update()
         if self.player.health <= 0:
             for sprite in allgroup:
                 sprite.kill()
+            h.play()
             self.dead = True
             self.stopped = True
 
