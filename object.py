@@ -1,6 +1,7 @@
 import sys
 import pygame
 import support
+import datetime
 pygame.init()
 k = pygame.mixer.Sound('data/music/knife.wav')
 k.set_volume(0.5)
@@ -608,6 +609,13 @@ class Shower:
                 sprite.kill()
             self.dead = True
             self.stopped = True
+
+    def savegame(self):
+        time = datetime.datetime.now().strftime(
+            "%H_%M_%S_%d_%m_%Y"
+        )
+        print(time)
+        savelevel(time)
 
     def stop(self):
         self.show = False

@@ -7,7 +7,6 @@ import support
 def main():
     pygame.init()
     action()
-    object.savelevel('какой-то сэйв')
     pygame.quit()
     sys.exit()
 
@@ -38,6 +37,9 @@ def action():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     shower.stop()
+                if event.key == pygame.K_s and \
+                    pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    shower.savegame()
                 if event.key == pygame.K_e:
                     shower.take()
                 if event.key == pygame.K_1:
