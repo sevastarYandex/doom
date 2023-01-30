@@ -24,11 +24,15 @@ def action():
     pygame.display.set_caption('DOOM: SARATOV EDITION')
     support.WINDOWWIDTH, support.WINDOWHEIGHT = \
         screen.get_size()
+    k = screen.get_size()
     shower = object.Shower()
     clock = pygame.time.Clock()
     pygame.mouse.set_visible(True)
     while shower.isgoing():
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        buttons = pygame.mouse.get_pressed()
+        keys = pygame.key.get_pressed()
+        for event in events:
             if event.type == SONG_END:
                 if len(playlist) > 0:
                     pygame.mixer.music.queue(playlist[0])
@@ -36,12 +40,17 @@ def action():
                     if len(playlist) == 0:
                         playlist = support.make_playlist()
         if shower.sost == support.MENU:
-            for event in pygame.event.get():
+            for event in events:
+                if event.type == pygame.QUIT:
+                    shower.stop()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        shower.stop()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == pygame.BUTTON_LEFT:
                         print(event.pos)
-        elif shower.sost == support.GAME:
-            for event in pygame.event.get():
+        if shower.sost == support.GAME:
+            for event in events:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         shower.sost = support.GAMEMENU
@@ -58,7 +67,6 @@ def action():
                         shower.change(support.AUTOMAT)
                     if event.key == pygame.K_4:
                         shower.change(support.SHOTGUN)
-            keys = pygame.key.get_pressed()
             if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
                 shower.move(1, 0)
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -70,7 +78,6 @@ def action():
                 shower.move(0, -1)
             if keys[pygame.K_r]:
                 shower.reload()
-            buttons = pygame.mouse.get_pressed()
             if buttons[0]:
                 shower.shoot(pygame.mouse.get_pos())
         shower.update()

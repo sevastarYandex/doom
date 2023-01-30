@@ -3,6 +3,14 @@ import os
 import sys
 import math
 import random
+MENUNEW1 = (566, 191)
+MENUNEW2 = (861, 274)
+MENULOAD1 = (874, 290)
+MENULOAD2 = (1159, 381)
+MENURULE1 = (569, 420)
+MENURULE2 = (859, 508)
+MENUEXIT1 = (872, 538)
+MENUEXIT2 = (1164, 633)
 MENU = 1
 RULE = 2
 SAVE = 3
