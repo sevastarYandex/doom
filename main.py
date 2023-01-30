@@ -7,8 +7,7 @@ import support
 def main():
     pygame.init()
     action()
-    for sprite in object.allgroup:
-        print(sprite.__repr__())
+    object.savelevel('какой-то сэйв')
     pygame.quit()
     sys.exit()
 

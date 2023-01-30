@@ -1,7 +1,7 @@
 from PIL import Image
 
 
-f = open("data/level/1.txt", 'w')
+f = open("data/level/007.txt", 'w')
 im = Image.open("арта.png")
 pixels = im.load()
 x, y = im.size

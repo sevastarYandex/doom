@@ -71,7 +71,7 @@ enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
              support.PISTOL: 'enemy/pistol.png',
              support.AUTOMAT: 'enemy/automat.png',
              support.SHOTGUN: 'enemy/shotgun.png'}}
-entityspec = {'@': (100, ('z',)),
+entityspec = {'@': (1000, ('z',)),
               'a': (50, ('y',)),
               'b': (50, ('z',)),
               'c': (50, ('x',)),
@@ -97,7 +97,7 @@ class FloatSprite(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def __repr__(self):
-        return ''
+        return f"{self.__class__.__name__}"
 
 
 class Field(FloatSprite):
@@ -125,7 +125,7 @@ class Field(FloatSprite):
                                               surf.get_width(), surf.get_height()))
 
     def __repr__(self):
-        return f"Field {self.x} {self.y}"
+        return super().__repr__() + f"({self.x}, {self.y})"
 
 
 class Bullet(FloatSprite):
@@ -173,12 +173,12 @@ class Bullet(FloatSprite):
         return True
 
     def __repr__(self):
-        return f"Bullet {self.x} {self.y} {self.sin} {self.cos} " \
-               f"{self.friendtype.__name__} {self.type} {self.dist}"
+        return super().__repr__() + f"({self.x}, {self.y}, {self.sin}, {self.cos}, " \
+               f"{self.friendtype.__name__}, {self.type}, {self.dist})"
 
 
 class Weapon(FloatSprite):
-    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=0):
+    def __init__(self, x, y, type, ammo=None, nowstore=None, bns=None):
         super().__init__(allgroup, weapongroup)
         self.type = type
         self.kind = weaponspec[self.type][0]
@@ -196,7 +196,9 @@ class Weapon(FloatSprite):
         self.scatter = weaponspec[self.type][5]
         self.shoottime = weaponspec[self.type][6]
         self.reloadtime = weaponspec[self.type][7]
-        self.beforenextshoot = bns
+        self.beforenextshoot = 0
+        if bns is not None:
+            self.beforenextshoot = bns
         self.clock = pygame.time.Clock()
         self.image = support.loadImage(weaponimg[self.type])
         self.setmask()
@@ -204,8 +206,9 @@ class Weapon(FloatSprite):
         self.setxy()
 
     def __repr__(self):
-        return f"Weapon {self.x} {self.y} {self.type} {self.ammo} " \
-               f"{self.nowstore} {self.beforenextshoot}"
+        return super().__repr__() + \
+               f"({self.x}, {self.y}, {self.type}, {self.ammo}, " \
+               f"{self.nowstore}, {self.beforenextshoot})"
 
     def merge(self, other):
         host1, host2 = self.host, other.host
@@ -284,15 +287,18 @@ class Weapon(FloatSprite):
 
 
 class Entity(FloatSprite):
-    def __init__(self, x, y, w, h, type, imglist, curslot, health=None, armor=1,
-                 weapons={support.DUKE: None,
+    def __init__(self, x, y, w, h, type, imglist, curslot, health=None, armor=None, weapons=None):
+        super().__init__(allgroup, wallgroup, entitygroup)
+        self.weapons = {support.DUKE: None,
                         support.PISTOL: None,
                         support.AUTOMAT: None,
-                        support.SHOTGUN: None}):
-        super().__init__(allgroup, wallgroup, entitygroup)
-        self.weapons = weapons
+                        support.SHOTGUN: None}
+        if weapons is not None:
+            self.weapons = weapons
         self.imglist = imglist
-        self.armor = armor
+        self.armor = 1
+        if armor is not None:
+            self.armor = armor
         self.w = w
         self.h = h
         self.health = entityspec[type][0]
@@ -314,6 +320,11 @@ class Entity(FloatSprite):
         self.dy = 0
         self.rx = 0
         self.ry = 0
+
+    def __repr__(self):
+        return super().__repr__() + f"({self.x}, {self.y}, {self.health}, {self.armor}, [" + \
+               ", ".join(map(Weapon.__repr__,
+                            filter(lambda x: x is not None, self.weapons.values()))) + "])"
 
     def getweapon(self):
         return self.weapons[self.currentwp]
@@ -445,11 +456,7 @@ class Entity(FloatSprite):
 
 
 class Player(Entity):
-    def __init__(self, x, y, health=None, armor=1,
-                 weapons={support.DUKE: None,
-                        support.PISTOL: None,
-                        support.AUTOMAT: None,
-                        support.SHOTGUN: None}):
+    def __init__(self, x, y, health=None, armor=None, weapons=None):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
                          support.PLAYERTYPE, playerimg,
                          support.DUKE, health, armor, weapons)
@@ -457,18 +464,9 @@ class Player(Entity):
         self.dx = support.PDX
         self.dy = support.PDY
 
-    def __repr__(self):
-        return f"Player {self.x} {self.y} {self.health} {self.armor} " + \
-               " ".join(map(Weapon.__repr__,
-                            filter(lambda x: x is not None, self.weapons.values())))
-
 
 class Enemy(Entity):
-    def __init__(self, x, y, type, health=None, armor=1,
-                 weapons={support.DUKE: None,
-                        support.PISTOL: None,
-                        support.AUTOMAT: None,
-                        support.SHOTGUN: None}):
+    def __init__(self, x, y, type, health=None, armor=None, weapons=None):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
             type, enemyimg[type], None, health, armor, weapons)
         self.type = type
@@ -477,11 +475,6 @@ class Enemy(Entity):
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
         self.ry = support.MXRY * support.TILEHEIGHT
-
-    def __repr__(self):
-        return f"Enemy {self.x} {self.y} {self.type} {self.health} {self.armor} " + \
-               " ".join(map(Weapon.__repr__,
-                            filter(lambda x: x is not None, self.weapons.values())))
 
     def move(self, dx, dy, check=True, good=None):
         super().move(dx, dy, check, Enemy)
@@ -511,7 +504,7 @@ class Medicine(FloatSprite):
 
     def update(self):
         for sprite in wallgroup:
-            if pygame.sprite.collide_mask(sprite, self) and type(sprite) == self.friendtype:
+            if pygame.sprite.collide_mask(sprite, self) and isinstance(sprite, self.friendtype):
                 success = self.heal(sprite)
                 if success:
                     return
@@ -524,8 +517,8 @@ class Medicine(FloatSprite):
         return True
 
     def __repr__(self):
-        return f"Medicine {self.x} " \
-               f"{self.y} {self.type}"
+        return super().__repr__() + \
+               f"({self.x}, {self.y}, {self.type})"
 
 
 class Armor(FloatSprite):
@@ -541,7 +534,7 @@ class Armor(FloatSprite):
 
     def update(self):
         for sprite in wallgroup:
-            if pygame.sprite.collide_mask(sprite, self) and type(sprite) == self.friendtype:
+            if pygame.sprite.collide_mask(sprite, self) and isinstance(sprite, self.friendtype):
                 success = self.protect(sprite)
                 if success:
                     return
@@ -554,8 +547,8 @@ class Armor(FloatSprite):
         return True
 
     def __repr__(self):
-        return f"Armor {self.x} " \
-               f"{self.y} {self.type}"
+        return super().__repr__() +\
+               f"({self.x}, {self.y}, {self.type})"
 
 
 class Back(FloatSprite):
@@ -589,7 +582,7 @@ class Camera:
         self.dy = -(target.y + target.h // 2 - support.WINDOWHEIGHT // 2)
 
     def __repr__(self):
-        return f"Camera {self.dx} {self.dy}"
+        return f"Camera({self.dx}, {self.dy})"
 
 
 class Shower:
@@ -600,6 +593,7 @@ class Shower:
         self.camera = Camera()
         self.player, self.field = generatelevel()
         self.dead = False
+        self.stopped = False
 
     def setTiles(self):
         for type in tileimg:
@@ -613,6 +607,7 @@ class Shower:
             for sprite in allgroup:
                 sprite.kill()
             self.dead = True
+            self.stopped = True
 
     def stop(self):
         self.show = False
@@ -646,7 +641,7 @@ class Shower:
         herogroup.update(support.CHANGEKEY, key)
 
     def draw(self, screen):
-        if self.dead:
+        if self.stopped:
             return
         self.camera.update(self.player)
         for sprite in allgroup:
@@ -693,3 +688,12 @@ def generatelevel():
                 player = Player(x * support.TILEWIDTH,
                                 y * support.TILEHEIGHT)
     return player, field
+
+
+def savelevel(date):
+    with open('data/save/' + str(date) + '.txt', 'w') as save:
+        for sprite in allgroup:
+            if isinstance(sprite, Weapon):
+                if sprite.host is not None:
+                    continue
+            save.write(sprite.__repr__() + '\n')
