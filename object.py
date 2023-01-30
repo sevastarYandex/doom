@@ -72,7 +72,7 @@ enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
              support.PISTOL: 'enemy/pistol.png',
              support.AUTOMAT: 'enemy/automat.png',
              support.SHOTGUN: 'enemy/shotgun.png'}}
-entityspec = {'@': (1000, ('z',)),
+entityspec = {'@': (100, ('z',)),
               'a': (50, ('y',)),
               'b': (50, ('z',)),
               'c': (50, ('x',)),
@@ -110,6 +110,11 @@ class Field(FloatSprite):
         self.rect.y = y
         self.setxy()
 
+    @staticmethod
+    def create(info):
+        x, y = map(float, info.split(', '))
+        return Field(x, y)
+
     def draw(self, screen):
         x1 = -self.x // support.TILEWIDTH
         y1 = -self.y // support.TILEHEIGHT
@@ -143,6 +148,19 @@ class Bullet(FloatSprite):
         self.rect = self.rect.move(-self.rect.w // 2, -self.rect.h // 2)
         self.friendtype = friend
         self.setxy()
+
+    @staticmethod
+    def create(info):
+        info = info.split(', ')
+        x, y = map(float, info[:2])
+        sin, cos = map(float, info[2:4])
+        if info[4] == 'Player':
+            friend = Player
+        else:
+            friend = Enemy
+        type = info[5]
+        dist = float(info[6])
+        return Bullet(x, y, sin, cos, friend, type, dist)
 
     def update(self):
         self.x += self.shift * self.cos
@@ -205,6 +223,16 @@ class Weapon(FloatSprite):
         self.setmask()
         self.rect = self.image.get_rect().move(x, y)
         self.setxy()
+
+    @staticmethod
+    def create(info):
+        info = info.split(', ')
+        x, y = map(float, info[:2])
+        type = info[2]
+        ammo = int(info[3])
+        nowstore = int(info[4])
+        bns = float(info[5])
+        return Weapon(x, y, type, ammo, nowstore, bns)
 
     def __repr__(self):
         return super().__repr__() + \
@@ -290,12 +318,6 @@ class Weapon(FloatSprite):
 class Entity(FloatSprite):
     def __init__(self, x, y, w, h, type, imglist, curslot, health=None, armor=None, weapons=None):
         super().__init__(allgroup, wallgroup, entitygroup)
-        self.weapons = {support.DUKE: None,
-                        support.PISTOL: None,
-                        support.AUTOMAT: None,
-                        support.SHOTGUN: None}
-        if weapons is not None:
-            self.weapons = weapons
         self.imglist = imglist
         self.armor = 1
         if armor is not None:
@@ -307,8 +329,16 @@ class Entity(FloatSprite):
         if health is not None:
             self.health = health
         self.currentwp = support.MAINSLOT
-        for t in entityspec[type][1]:
-            self.setweapon(Weapon(0, 0, t))
+        self.weapons = {support.DUKE: None,
+                        support.PISTOL: None,
+                        support.AUTOMAT: None,
+                        support.SHOTGUN: None}
+        if weapons is not None:
+            for weapon in weapons:
+                self.setweapon(weapon)
+        else:
+            for t in entityspec[type][1]:
+                self.setweapon(Weapon(0, 0, t))
         if curslot is not None:
             self.change(curslot)
         self.frames = []
@@ -323,9 +353,9 @@ class Entity(FloatSprite):
         self.ry = 0
 
     def __repr__(self):
-        return super().__repr__() + f"({self.x}, {self.y}, {self.health}, {self.armor}, [" + \
+        return f"{self.health}, {self.armor}, [" + \
                ", ".join(map(Weapon.__repr__,
-                            filter(lambda x: x is not None, self.weapons.values()))) + "])"
+                            filter(lambda x: x is not None, self.weapons.values()))) + "]"
 
     def getweapon(self):
         return self.weapons[self.currentwp]
@@ -465,6 +495,22 @@ class Player(Entity):
         self.dx = support.PDX
         self.dy = support.PDY
 
+    @staticmethod
+    def create(info):
+        totalinfo = info.split(', ')
+        x, y = map(float, totalinfo[:2])
+        health, armor = int(totalinfo[2]), float(totalinfo[3])
+        weapinfo = info[info.find('[') + 1: info.rfind(']')].split('), ')
+        weapons = []
+        for weap in weapinfo:
+            weap = weap[weap.find('(') + 1:]
+            weap = weap.rstrip(')')
+            weapons.append(Weapon.create(weap))
+        return Player(x, y, health, armor, weapons)
+
+    def __repr__(self):
+        return f"Player({self.x}, {self.y}, " + super().__repr__() + ")"
+
 
 class Enemy(Entity):
     def __init__(self, x, y, type, health=None, armor=None, weapons=None):
@@ -476,6 +522,23 @@ class Enemy(Entity):
         self.dy = support.EDY
         self.rx = support.MXRX * support.TILEWIDTH
         self.ry = support.MXRY * support.TILEHEIGHT
+
+    @staticmethod
+    def create(info):
+        totalinfo = info.split(', ')
+        x, y = map(float, totalinfo[:2])
+        type = totalinfo[2]
+        health, armor = int(totalinfo[3]), float(totalinfo[4])
+        weapinfo = info[info.find('[') + 1: info.rfind(']')].split('), ')
+        weapons = []
+        for weap in weapinfo:
+            weap = weap[weap.find('(') + 1:]
+            weap = weap.rstrip(')')
+            weapons.append(Weapon.create(weap))
+        return Enemy(x, y, type, health, armor, weapons)
+
+    def __repr__(self):
+        return f"Enemy({self.x}, {self.y}, {self.type}, " + super().__repr__() + ")"
 
     def move(self, dx, dy, check=True, good=None):
         super().move(dx, dy, check, Enemy)
@@ -502,6 +565,13 @@ class Medicine(FloatSprite):
         self.setmask()
         self.rect = self.image.get_rect().move(x, y)
         self.setxy()
+
+    @staticmethod
+    def create(info):
+        info = info.split(', ')
+        x, y = map(float, info[:2])
+        type = info[2]
+        return Medicine(x, y, type)
 
     def update(self):
         for sprite in wallgroup:
@@ -532,6 +602,13 @@ class Armor(FloatSprite):
         self.setmask()
         self.rect = self.image.get_rect().move(x, y)
         self.setxy()
+
+    @staticmethod
+    def create(info):
+        info = info.split(', ')
+        x, y = map(float, info[:2])
+        type = info[2]
+        return Armor(x, y, type)
 
     def update(self):
         for sprite in wallgroup:
@@ -592,7 +669,7 @@ class Shower:
         self.upd = 0
         self.setTiles()
         self.camera = Camera()
-        self.player, self.field = generatelevel()
+        self.player, self.field = loadsave('2023_01_30_22_31_41')
         self.dead = False
         self.stopped = False
 
@@ -612,9 +689,8 @@ class Shower:
 
     def savegame(self):
         time = datetime.datetime.now().strftime(
-            "%H_%M_%S_%d_%m_%Y"
+            "%Y_%m_%d_%H_%M_%S"
         )
-        print(time)
         savelevel(time)
 
     def stop(self):
@@ -695,6 +771,42 @@ def generatelevel():
             if level[y][x] == support.PLAYERTYPE:
                 player = Player(x * support.TILEWIDTH,
                                 y * support.TILEHEIGHT)
+    return player, field
+
+
+def createman(data):
+    classname = data[:data.find('(')]
+    info = data[data.find('(') + 1: data.rfind(')')]
+    if classname == 'Field':
+        return 'FIELD', Field.create(info)
+    if classname == 'Bullet':
+        Bullet.create(info)
+    if classname == 'Weapon':
+        Weapon.create(info)
+    if classname == 'Player':
+        return 'PLAYER', Player.create(info)
+    if classname == 'Enemy':
+        Enemy.create(info)
+    if classname == 'Medicine':
+        Medicine.create(info)
+    if classname == 'Armor':
+        Armor.create(info)
+    return '', ''
+
+
+def loadsave(name):
+    with open('data/save/' + name + '.txt', 'r') as save:
+        data = save.read()
+    data = data.rstrip('\n').split('\n')
+    player = None
+    field = None
+    Back()
+    for line in data:
+        res = createman(line)
+        if res[0] == 'PLAYER':
+            player = res[1]
+        if res[0] == 'FIELD':
+            field = res[1]
     return player, field
 
 

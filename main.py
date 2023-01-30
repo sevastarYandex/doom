@@ -55,7 +55,8 @@ def action():
             shower.move(1, 0)
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             shower.move(-1, 0)
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        if keys[pygame.K_DOWN] or (keys[pygame.K_s] and not
+        (pygame.key.get_mods() & pygame.KMOD_CTRL)):
             shower.move(0, 1)
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             shower.move(0, -1)
