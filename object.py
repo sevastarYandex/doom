@@ -767,6 +767,14 @@ class Shower:
                 self.dead = False
                 return
 
+    def back(self):
+        self.sost = support.MENU
+        self.dead = True
+        self.cleargroups()
+        self.player = None
+        self.field = None
+        self.camera = None
+
     def draw(self, screen):
         backgroup.draw(screen)
         if self.sost == support.GAMEMENU:

@@ -28,6 +28,10 @@ def action():
             support.loadImage(object.fonimg).get_size()[0]
     foncy = screen.get_size()[1] / \
             support.loadImage(object.fonimg).get_size()[1]
+    gamecx = screen.get_size()[0] / \
+            support.loadImage(object.gamemenuimg).get_size()[0]
+    gamecy = screen.get_size()[1] / \
+            support.loadImage(object.gamemenuimg).get_size()[1]
     shower = object.Shower()
     clock = pygame.time.Clock()
     pygame.mouse.set_visible(True)
@@ -44,7 +48,15 @@ def action():
                     playlist.pop(0)
                     if len(playlist) == 0:
                         playlist = support.make_playlist()
-        if shower.sost == support.GAMEMENU:
+        if shower.sost == support.GAMELOAD:
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        shower.sost = support.GAMEMENU
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == pygame.BUTTON_LEFT:
+                        shower.tryload(event.pos)
+        elif shower.sost == support.GAMEMENU:
             for event in events:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
@@ -53,6 +65,23 @@ def action():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == pygame.BUTTON_LEFT:
                         x, y = event.pos
+                        x /= gamecx
+                        y /= gamecy
+                        if support.GAMEMENUCONTINUE1[0] <= x <= support.GAMEMENUCONTINUE2[0] \
+                            and support.GAMEMENUCONTINUE1[1] <= y <= support.GAMEMENUCONTINUE2[1]:
+                            if not shower.dead:
+                                shower.sost = support.GAME
+                        if support.GAMEMENULOAD1[0] <= x <= support.GAMEMENULOAD2[0] \
+                            and support.GAMEMENULOAD1[1] <= y <= support.GAMEMENULOAD2[1]:
+                            shower.sost = support.GAMELOAD
+                        if support.GAMEMENUSAVE1[0] <= x <= support.GAMEMENUSAVE2[0] \
+                            and support.GAMEMENUSAVE1[1] <= y <= support.GAMEMENUSAVE2[1]:
+                            if not shower.dead:
+                                shower.savegame()
+                                shower.sost = support.GAME
+                        if support.GAMEMENUBACK1[0] <= x <= support.GAMEMENUBACK2[0] \
+                            and support.GAMEMENUBACK1[1] <= y <= support.GAMEMENUBACK2[1]:
+                            shower.back()
         elif shower.sost == support.RULE:
             for event in events:
                 if event.type == pygame.KEYDOWN:
