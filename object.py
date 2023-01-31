@@ -1,3 +1,4 @@
+import os
 import sys
 import pygame
 import support
@@ -24,6 +25,7 @@ bulletgroup = pygame.sprite.Group()
 weapongroup = pygame.sprite.Group()
 medicinegroup = pygame.sprite.Group()
 armorgroup = pygame.sprite.Group()
+backgroup = pygame.sprite.Group()
 emptyimg = 'back/empty.png'
 tileimg = {'1': 'tile/ground.png',
            '2': 'tile/wall.png',
@@ -41,7 +43,6 @@ medicineimg = {'+': 'medicine/20.png',
                '*': 'medicine/80.png'}
 medicinespec = {'+': (20,),
                 '*': (80,)}
-backgroup = pygame.sprite.Group()
 armorimg = {'}': 'armor/1.25.png',
             '{': 'armor/2.5.png'}
 armorspec = {'}': (1.25,),
@@ -82,6 +83,13 @@ entityspec = {'@': (100, ('z',)),
 backimg = 'back/dungeon.png'
 level = support.loadLevel(1)
 fonimg = 'back/fon.png'
+ruleimg = 'back/rules.png'
+gamemenuimg = 'back/gamemenu.png'
+groups = [
+        allgroup, wallgroup, herogroup,
+    enemygroup, entitygroup, bulletgroup,
+    weapongroup, medicinegroup, armorgroup
+]
 
 
 class FloatSprite(pygame.sprite.Sprite):
@@ -671,9 +679,17 @@ class Shower:
         self.show = True
         self.upd = 0
         self.setTiles()
+        self.player, self.field = None, None
+        self.camera = None
         self.sost = support.MENU
-        self.dead = False
+        self.dead = True
         Back()
+
+    def newgame(self):
+        self.player, self.field = generatelevel()
+        self.dead = False
+        self.camera = Camera()
+        self.sost = support.GAME
 
     def setTiles(self):
         for type in tileimg:
@@ -686,11 +702,18 @@ class Shower:
         self.animate()
         allgroup.update()
         if self.player.health <= 0:
-            for sprite in allgroup:
-                sprite.kill()
             h.play()
             self.dead = True
             self.sost = support.GAMEMENU
+            self.cleargroups()
+            self.player = None
+            self.field = None
+            self.camera = None
+
+    def cleargroups(self):
+        for group in groups:
+            for sprite in group:
+                sprite.kill()
 
     def savegame(self):
         time = datetime.datetime.now().strftime(
@@ -729,8 +752,49 @@ class Shower:
     def change(self, key):
         herogroup.update(support.CHANGEKEY, key)
 
+    def tryload(self, pos):
+        saves = sorted(map(lambda x: x.rstrip('.txt').lstrip('data/save/'),
+                           os.listdir('data/save')), reverse=True)
+        minposy = [50 + 100 * i for i in
+                   range(len(os.listdir('data/save')))]
+        if not (100 <= pos[0] <= 450):
+            return
+        for i in range(len(minposy)):
+            if minposy[i] <= pos[1] <= minposy[i] + 50:
+                self.sost = support.GAME
+                self.camera = Camera()
+                self.player, self.field = loadsave(saves[i])
+                self.dead = False
+                return
+
     def draw(self, screen):
         backgroup.draw(screen)
+        if self.sost == support.GAMEMENU:
+            screen.fill('black')
+            img = support.loadImage(gamemenuimg)
+            img = pygame.transform.scale(img, (support.WINDOWWIDTH,
+                                               support.WINDOWHEIGHT))
+            screen.blit(img, (0, 0))
+            return
+        if self.sost == support.RULE:
+            screen.fill('black')
+            img = support.loadImage(ruleimg)
+            img = pygame.transform.scale(img, (support.WINDOWWIDTH,
+                                               support.WINDOWHEIGHT))
+            screen.blit(img, (0, 0))
+            return
+        if self.sost == support.SAVE or self.sost == support.GAMELOAD:
+            screen.fill('black')
+            font = pygame.font.Font(None, 50)
+            savestr = sorted([x.rstrip('.txt').lstrip('data/save/')
+                       for x in os.listdir('data/save')], reverse=True)
+            xc = 100
+            yc = 50
+            for string in savestr:
+                text = font.render(string, True, (255, 0, 0))
+                screen.blit(text, (xc, yc))
+                yc += 100
+            return
         if self.sost == support.GAME:
             self.camera.update(self.player)
             for sprite in allgroup:
@@ -741,15 +805,11 @@ class Shower:
                 self.camera.disapply(sprite)
             return
         if self.sost == support.MENU:
-            screen.fill('black')
             img = support.loadImage(fonimg)
             img = pygame.transform.scale(img, (support.WINDOWWIDTH,
                                                support.WINDOWHEIGHT))
             screen.blit(img, (0, 0))
             return
-
-    def retur_lev(self):
-        return self.level
 
 
 def generatelevel():

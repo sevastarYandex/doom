@@ -24,7 +24,10 @@ def action():
     pygame.display.set_caption('DOOM: SARATOV EDITION')
     support.WINDOWWIDTH, support.WINDOWHEIGHT = \
         screen.get_size()
-    k = screen.get_size()
+    foncx = screen.get_size()[0] / \
+            support.loadImage(object.fonimg).get_size()[0]
+    foncy = screen.get_size()[1] / \
+            support.loadImage(object.fonimg).get_size()[1]
     shower = object.Shower()
     clock = pygame.time.Clock()
     pygame.mouse.set_visible(True)
@@ -33,23 +36,59 @@ def action():
         buttons = pygame.mouse.get_pressed()
         keys = pygame.key.get_pressed()
         for event in events:
+            if event.type == pygame.QUIT:
+                shower.stop()
             if event.type == SONG_END:
                 if len(playlist) > 0:
                     pygame.mixer.music.queue(playlist[0])
                     playlist.pop(0)
                     if len(playlist) == 0:
                         playlist = support.make_playlist()
-        if shower.sost == support.MENU:
+        if shower.sost == support.GAMEMENU:
             for event in events:
-                if event.type == pygame.QUIT:
-                    shower.stop()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        if not shower.dead:
+                            shower.sost = support.GAME
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == pygame.BUTTON_LEFT:
+                        x, y = event.pos
+        elif shower.sost == support.RULE:
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        shower.sost = support.MENU
+        elif shower.sost == support.SAVE:
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        shower.sost = support.MENU
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == pygame.BUTTON_LEFT:
+                        shower.tryload(event.pos)
+        elif shower.sost == support.MENU:
+            for event in events:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         shower.stop()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == pygame.BUTTON_LEFT:
-                        print(event.pos)
-        if shower.sost == support.GAME:
+                        x, y = event.pos
+                        x /= foncx
+                        y /= foncy
+                        if support.MENUNEW1[0] <= x <= support.MENUNEW2[0] and \
+                            support.MENUNEW1[1] <= y <= support.MENUNEW2[1]:
+                            shower.newgame()
+                        if support.MENULOAD1[0] <= x <= support.MENULOAD2[0] and \
+                                support.MENULOAD1[1] <= y <= support.MENULOAD2[1]:
+                            shower.sost = support.SAVE
+                        if support.MENURULE1[0] <= x <= support.MENURULE2[0] and \
+                                support.MENURULE1[1] <= y <= support.MENURULE2[1]:
+                            shower.sost = support.RULE
+                        if support.MENUEXIT1[0] <= x <= support.MENUEXIT2[0] and \
+                                support.MENUEXIT1[1] <= y <= support.MENUEXIT2[1]:
+                            shower.stop()
+        elif shower.sost == support.GAME:
             for event in events:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
