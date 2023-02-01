@@ -36,7 +36,7 @@ bulletimg = {'z': emptyimg,
              'y': 'bullet/usual.png',
              'x': 'bullet/usual.png',
              'w': 'bullet/usual.png',
-             'v': 'bullet/vomit.png'} #
+             'v': 'bullet/vomit.png'}
 bulletspec = {'z': (30, 300, 2),
               't': (30, 400, 3),
               'y': (50, 700, 25),
@@ -67,7 +67,7 @@ playerimg = {support.DUKE: 'player/duke.png',
              support.PISTOL: 'player/pistol.png',
              support.AUTOMAT: 'player/automat.png',
              support.SHOTGUN: 'player/shotgun.png'}
-enemyimg = {'a': {support.DUKE: 'enemy/szombie.png', #
+enemyimg = {'a': {support.DUKE: 'enemy/szombie.png',
              support.PISTOL: emptyimg,
              support.AUTOMAT: emptyimg,
              support.SHOTGUN: emptyimg},
