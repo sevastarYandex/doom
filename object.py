@@ -51,8 +51,8 @@ armorimg = {'}': 'armor/1.25.png',
             '{': 'armor/2.5.png'}
 armorspec = {'}': (1.25,),
              '{': (2.5,)}
-weaponimg = {'z': 'weapon/duke.png',
-             't': 'weapon/duke.png',
+weaponimg = {'z': emptyimg,
+             't': emptyimg,
              'y': 'weapon/pistol.png',
              'x': 'weapon/automat.png',
              'w': 'weapon/shotgun.png',
