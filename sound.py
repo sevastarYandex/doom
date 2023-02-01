@@ -1,4 +1,15 @@
 # from PIL import Image
+# im = Image.open('data/image/tile/ground.png')
+# pixels = im.load()
+# x, y = im.size
+# for i in range(x):
+#     for j in range(y):
+#         pixels[i, j] = (min(255, pixels[i, j][0] + 100),
+#                         pixels[i, j][1],
+#                         pixels[i, j][2])
+# im.save('data/image/tile/ground.png')
+
+# from PIL import Image
 #
 #
 # f = open("data/level/007.txt", 'w')
@@ -48,8 +59,8 @@
 #     ans.append(s)
 # text = '\n'.join(ans)
 # f.write(text)
-with open('data/level/1.txt') as f:
-    data = f.read()
-data = data.replace('d', 'a').replace('z', 'a')
-with open('data/level/1.txt', 'w') as f:
-    f.write(data)
+# with open('data/level/1.txt') as f:
+#     data = f.read()
+# data = data.replace('d', 'a').replace('z', 'a')
+# with open('data/level/1.txt', 'w') as f:
+#     f.write(data)
