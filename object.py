@@ -560,7 +560,7 @@ class Enemy(Entity):
         totalinfo = info.split(', ')
         x, y = map(float, totalinfo[:2])
         type = totalinfo[2]
-        health, armor = int(totalinfo[3]), float(totalinfo[4])
+        health, armor = float(totalinfo[3]), float(totalinfo[4])
         weapinfo = info[info.find('[') + 1: info.rfind(']')].split('), ')
         weapons = []
         for weap in weapinfo:
