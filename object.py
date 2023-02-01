@@ -37,12 +37,12 @@ bulletimg = {'z': emptyimg,
              'x': 'bullet/usual.png',
              'w': 'bullet/usual.png',
              'v': 'bullet/vomit.png'}
-bulletspec = {'z': (30, 300, 2),
-              't': (30, 400, 3),
+bulletspec = {'z': (30, 200, 2),
+              't': (30, 300, 2),
               'y': (50, 700, 25),
               'x': (40, 700, 6),
               'w': (80, 400, 6),
-              'v': (20, 1000, 40)}
+              'v': (20, 1000, 30)}
 medicineimg = {'+': 'medicine/20.png',
                '*': 'medicine/80.png'}
 medicinespec = {'+': (20,),
@@ -71,13 +71,13 @@ enemyimg = {'a': {support.DUKE: 'enemy/szombie.png',
              support.PISTOL: emptyimg,
              support.AUTOMAT: emptyimg,
              support.SHOTGUN: emptyimg},
-            'c': {support.DUKE: 'enemy/lzombie.png', #
+            'c': {support.DUKE: 'enemy/lzombie.png',
              support.PISTOL: emptyimg,
              support.AUTOMAT: emptyimg,
              support.SHOTGUN: emptyimg},
             'b': {support.DUKE: emptyimg,
             support.PISTOL: emptyimg,
-            support.AUTOMAT: 'enemy/mutant.png', #
+            support.AUTOMAT: 'enemy/mutant.png',
             support.SHOTGUN: emptyimg}}
 entityspec = {'@': (100, ('z',)),
               'a': (50, ('z',)),
@@ -97,7 +97,7 @@ groups = [
     enemygroup, entitygroup, bulletgroup,
     weapongroup, medicinegroup, armorgroup
 ]
-total = len(tuple(filter(lambda x: x in entityspec and x != support.PLAYERTYPE,
+total = len(tuple(filter(lambda x: x in enemyspeed,
                    ''.join(map(lambda x: ''.join(x), level)))))
 
 
@@ -726,15 +726,11 @@ class Shower:
             h.play()
             self.dead = True
             self.sost = support.GAMEMENU
-            self.cleargroups()
+            for sprite in allgroup:
+                sprite.kill()
             self.player = None
             self.field = None
             self.camera = None
-
-    def cleargroups(self):
-        for group in groups:
-            for sprite in group:
-                sprite.kill()
 
     def savegame(self):
         time = datetime.datetime.now().strftime(
@@ -780,6 +776,11 @@ class Shower:
                    range(len(os.listdir('data/save')))]
         if not (100 <= pos[0] <= 450):
             return
+        self.player = None
+        self.camera = None
+        self.field = None
+        for sprite in allgroup:
+            sprite.kill()
         for i in range(len(minposy)):
             if minposy[i] <= pos[1] <= minposy[i] + 50:
                 self.sost = support.GAME
@@ -791,7 +792,8 @@ class Shower:
     def back(self):
         self.sost = support.MENU
         self.dead = True
-        self.cleargroups()
+        for sprite in allgroup:
+            sprite.kill()
         self.player = None
         self.field = None
         self.camera = None
