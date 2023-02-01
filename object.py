@@ -85,11 +85,14 @@ level = support.loadLevel(1)
 fonimg = 'back/fon.png'
 ruleimg = 'back/rules.png'
 gamemenuimg = 'back/gamemenu.png'
+statimg = 'back/stat.png'
 groups = [
         allgroup, wallgroup, herogroup,
     enemygroup, entitygroup, bulletgroup,
     weapongroup, medicinegroup, armorgroup
 ]
+total = len(tuple(filter(lambda x: x in entityspec and x != support.PLAYERTYPE,
+                   ''.join(map(lambda x: ''.join(x), level)))))
 
 
 class FloatSprite(pygame.sprite.Sprite):
@@ -510,7 +513,7 @@ class Player(Entity):
     def create(info):
         totalinfo = info.split(', ')
         x, y = map(float, totalinfo[:2])
-        health, armor = int(totalinfo[2]), float(totalinfo[3])
+        health, armor = float(totalinfo[2]), float(totalinfo[3])
         weapinfo = info[info.find('[') + 1: info.rfind(']')].split('), ')
         weapons = []
         for weap in weapinfo:
@@ -524,6 +527,16 @@ class Player(Entity):
 
     def drawinfo(self, screen):
         font = pygame.font.Font(None, 50)
+        img = support.loadImage(statimg)
+        lines = (f'Здоровье: {int(self.health)}',
+                 f'Броня: {self.armor}',
+                 f'Убито врагов: {total - len(enemygroup)}')
+        start = 25
+        for line in lines:
+            text = font.render(line, True, 'white')
+            img.blit(text, (30, start))
+            start += 100
+        screen.blit(img, (0, screen.get_size()[1] - img.get_size()[1]))
 
 
 class Enemy(Entity):
