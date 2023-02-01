@@ -31,14 +31,18 @@ tileimg = {'1': 'tile/ground.png',
            '2': 'tile/wall.png',
            '3': 'tile/home.png',
            '4': 'tile/water.png'}
-bulletimg = {'z': 'back/empty.png',
+bulletimg = {'z': emptyimg,
+             't': emptyimg,
              'y': 'bullet/usual.png',
              'x': 'bullet/usual.png',
-             'w': 'bullet/usual.png'}
-bulletspec = {'z': (40, 300, 2),
+             'w': 'bullet/usual.png',
+             'v': 'bullet/vomit.png'} #
+bulletspec = {'z': (30, 300, 2),
+              't': (30, 400, 3),
               'y': (50, 700, 25),
-              'x': (40, 700, 10),
-              'w': (80, 400, 10)}
+              'x': (40, 700, 6),
+              'w': (80, 400, 6),
+              'v': (20, 1000, 40)}
 medicineimg = {'+': 'medicine/20.png',
                '*': 'medicine/80.png'}
 medicinespec = {'+': (20,),
@@ -48,38 +52,40 @@ armorimg = {'}': 'armor/1.25.png',
 armorspec = {'}': (1.25,),
              '{': (2.5,)}
 weaponimg = {'z': 'weapon/duke.png',
+             't': 'weapon/duke.png',
              'y': 'weapon/pistol.png',
              'x': 'weapon/automat.png',
-             'w': 'weapon/shotgun.png'}
+             'w': 'weapon/shotgun.png',
+             'v': emptyimg}
 weaponspec = {'z': (support.DUKE, 15, support.NOLIMITWEAPON, 1, 1, 6, 700, 0),
+              't': (support.DUKE, 20, support.NOLIMITWEAPON, 1, 1, 6, 750, 0),
               'y': (support.PISTOL, 1, 10, 10, 10, 2, 600, 1000),
               'x': (support.AUTOMAT, 1, 3, 30, 30, 4, 200, 2000),
-              'w': (support.SHOTGUN, 12, 7, 1, 7, 6, 800, 600)}
+              'w': (support.SHOTGUN, 12, 7, 1, 7, 6, 800, 600),
+              'v': (support.AUTOMAT, 1, 2, 12, 12, 1, 500, 2500)}
 playerimg = {support.DUKE: 'player/duke.png',
              support.PISTOL: 'player/pistol.png',
              support.AUTOMAT: 'player/automat.png',
              support.SHOTGUN: 'player/shotgun.png'}
-enemyimg = {'a': {support.DUKE: 'enemy/duke.png',
-             support.PISTOL: 'enemy/pistol.png',
-             support.AUTOMAT: 'enemy/automat.png',
-             support.SHOTGUN: 'enemy/shotgun.png'},
-            'b': {support.DUKE: 'enemy/duke.png',
-            support.PISTOL: 'enemy/pistol.png',
-            support.AUTOMAT: 'enemy/automat.png',
-            support.SHOTGUN: 'enemy/shotgun.png'},
-            'c': {support.DUKE: 'enemy/duke.png',
-             support.PISTOL: 'enemy/pistol.png',
-             support.AUTOMAT: 'enemy/automat.png',
-             support.SHOTGUN: 'enemy/shotgun.png'},
-            'd': {support.DUKE: 'enemy/duke.png',
-             support.PISTOL: 'enemy/pistol.png',
-             support.AUTOMAT: 'enemy/automat.png',
-             support.SHOTGUN: 'enemy/shotgun.png'}}
+enemyimg = {'a': {support.DUKE: 'enemy/szombie.png', #
+             support.PISTOL: emptyimg,
+             support.AUTOMAT: emptyimg,
+             support.SHOTGUN: emptyimg},
+            'c': {support.DUKE: 'enemy/lzombie.png', #
+             support.PISTOL: emptyimg,
+             support.AUTOMAT: emptyimg,
+             support.SHOTGUN: emptyimg},
+            'b': {support.DUKE: emptyimg,
+            support.PISTOL: emptyimg,
+            support.AUTOMAT: 'enemy/mutant.png', #
+            support.SHOTGUN: emptyimg}}
 entityspec = {'@': (100, ('z',)),
-              'a': (50, ('y',)),
-              'b': (50, ('z',)),
-              'c': (50, ('x',)),
-              'd': (50, ('w',))}
+              'a': (50, ('z',)),
+              'c': (150, ('t',)),
+              'b': (250, ('v',))}
+enemyspeed = {'a': (support.SZDX, support.SZDY),
+              'c': (support.LZDX, support.LZDY),
+              'b': (support.MDX, support.MDY)}
 backimg = 'back/dungeon.png'
 level = support.loadLevel(1)
 fonimg = 'back/fon.png'
@@ -545,8 +551,7 @@ class Enemy(Entity):
             type, enemyimg[type], None, health, armor, weapons)
         self.type = type
         self.add(enemygroup)
-        self.dx = support.EDX
-        self.dy = support.EDY
+        self.dx, self.dy = enemyspeed[type]
         self.rx = support.MXRX * support.TILEWIDTH
         self.ry = support.MXRY * support.TILEHEIGHT
 
