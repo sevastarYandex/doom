@@ -81,7 +81,7 @@ enemyimg = {'a': {support.DUKE: 'enemy/szombie.png',
             support.SHOTGUN: emptyimg}}
 entityspec = {'@': (100, ('z',)),
               'a': (50, ('z',)),
-              'c': (150, ('t',)),
+              'c': (100, ('t',)),
               'b': (250, ('v',))}
 enemyspeed = {'a': (support.SZDX, support.SZDY),
               'c': (support.LZDX, support.LZDY),
