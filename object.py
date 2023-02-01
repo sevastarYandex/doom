@@ -522,6 +522,9 @@ class Player(Entity):
     def __repr__(self):
         return f"Player({self.x}, {self.y}, " + super().__repr__() + ")"
 
+    def drawinfo(self, screen):
+        font = pygame.font.Font(None, 50)
+
 
 class Enemy(Entity):
     def __init__(self, x, y, type, health=None, armor=None, weapons=None):
@@ -811,6 +814,7 @@ class Shower:
             allgroup.draw(screen)
             for sprite in allgroup:
                 self.camera.disapply(sprite)
+            self.player.drawinfo(screen)
             return
         if self.sost == support.MENU:
             img = support.loadImage(fonimg)
