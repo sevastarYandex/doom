@@ -3,6 +3,7 @@ import os
 import sys
 import math
 import random
+# константы для кнопок в различных меню
 MENUNEW1 = (566, 191)
 MENUNEW2 = (861, 274)
 MENULOAD1 = (874, 290)
@@ -19,23 +20,32 @@ GAMEMENULOAD1 = (615, 593)
 GAMEMENULOAD2 = (1205, 729)
 GAMEMENUBACK1 = (587, 835)
 GAMEMENUBACK2 = (1223, 959)
+# состояния игры: какое окно сейчас открыто внутри игры
 MENU = 1
 RULE = 2
 SAVE = 3
 GAME = 4
 GAMEMENU = 5
 GAMELOAD = 6
+# слоты оружия
 DUKE = 1
 PISTOL = 2
 AUTOMAT = 3
 SHOTGUN = 4
+# константа для оружия без ограничения на атаку
 NOLIMITWEAPON = -1
+# размеры основых объектов во время игры
 TILEWIDTH = 80
 TILEHEIGHT = 80
+# размеры окна (для разных компьютеров по-разному,
+# поэтому задаём в main.py)
 WINDOWWIDTH = None
 WINDOWHEIGHT = None
+# кадров в секунду
 FPS = 60
+# частота анимации - как часто сменять одну модель игрока на другую
 ANIMATEREGULAR = 15
+# единичные смещения игрока, зомби и мутантов
 PDX = 16
 PDY = 16
 SZDX = 16
@@ -44,12 +54,19 @@ LZDX = 10
 LZDY = 10
 MDX = 4
 MDY = 4
+# радиус обоняния врагов
+# (на каком расстоянии они начинают атаковать)
 MXRX = 10
 MXRY = 6
+# тип тайлов под всеми оружиями и существами на карте
 MAINTYPE = '1'
+# тип тайлов-стен
 WALLTYPES = '2'
+# тип игрока на карте
 PLAYERTYPE = '@'
+# слот оружия по умолчанию
 MAINSLOT = DUKE
+# ключи для обновления определённых параметров объектов
 ANIMATEKEY = 0
 MOVEKEY = 1
 DETECTKEY = 2
@@ -58,7 +75,8 @@ RELOADKEY = 4
 TAKEKEY = 5
 CHANGEKEY = 6
 
-
+# подсчёт угла полёта пули по вертикальному и
+# горизонтальному векторам и максимальному углу разброса
 def calculateDegree(px, py, sc):
     hyp = (px ** 2 + py ** 2) ** 0.5
     if not hyp:
@@ -73,7 +91,7 @@ def calculateDegree(px, py, sc):
         cos = -cos
     return sin, cos
 
-
+# загрузка изображения с именем name
 def loadImage(name, colorkey=None):
     fullname = os.path.join('data/image/', name)
     if not os.path.isfile(fullname):
@@ -89,9 +107,10 @@ def loadImage(name, colorkey=None):
         image = image.convert_alpha()
     return image
 
-
+# функция для создания плейлиста фоновой музыки
 def make_playlist():
-    melodies = ['BFG_Division.mp3', 'Damnation.mp3', 'Rip_Tear.mp3', 'Skullhacker.mp3', 'The_New_Order.mp3']
+    melodies = ['BFG_Division.mp3', 'Damnation.mp3',
+                'Rip_Tear.mp3', 'Skullhacker.mp3', 'The_New_Order.mp3']
     x = len(melodies)
     playl = []
     while len(playl) != x:
@@ -101,7 +120,7 @@ def make_playlist():
         melodies.pop(melodies.index(new))
     return playl
 
-
+# функция для загрузки карты уровня с номером num
 def loadLevel(num):
     filename = os.path.join('data/level/', str(num) + '.txt')
     if not os.path.isfile(filename):
