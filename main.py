@@ -3,7 +3,7 @@ import pygame
 import object
 import support
 
-
+# здесь запускаем игру
 def main():
     pygame.init()
     action()
@@ -12,6 +12,7 @@ def main():
 
 
 def action():
+    # создаём плейлист и начинаем его проигрывать
     SONG_END = pygame.USEREVENT + 1
     playlist = support.make_playlist()
     pygame.mixer.music.load(playlist[0])
@@ -20,8 +21,10 @@ def action():
     pygame.mixer.music.queue(playlist[0])
     playlist.pop(0)
     pygame.mixer.music.set_endevent(SONG_END)
+    # настраиваем окно игры
     screen = pygame.display.set_mode()
     pygame.display.set_caption('DOOM: SARATOV EDITION')
+    # определяем некоторые константы
     support.WINDOWWIDTH, support.WINDOWHEIGHT = \
         screen.get_size()
     foncx = screen.get_size()[0] / \
@@ -32,6 +35,7 @@ def action():
             support.loadImage(object.gamemenuimg).get_size()[0]
     gamecy = screen.get_size()[1] / \
             support.loadImage(object.gamemenuimg).get_size()[1]
+    # создаём объект для удобного показа
     shower = object.Shower()
     clock = pygame.time.Clock()
     pygame.mouse.set_visible(True)
