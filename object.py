@@ -4,6 +4,7 @@ import pygame
 import support
 import datetime
 pygame.init()
+# звуки для атаки для различных оружий
 k = pygame.mixer.Sound('data/music/knife.wav')
 k.set_volume(0.5)
 a = pygame.mixer.Sound('data/music/auto.wav')
@@ -16,6 +17,7 @@ r = pygame.mixer.Sound('data/music/reload.wav')
 r.set_volume(0.5)
 h = pygame.mixer.Sound('data/music/aaaaaa.wav')
 h.set_volume(1)
+# необходимые группы спрайтов
 allgroup = pygame.sprite.Group()
 wallgroup = pygame.sprite.Group()
 herogroup = pygame.sprite.Group()
@@ -26,6 +28,7 @@ weapongroup = pygame.sprite.Group()
 medicinegroup = pygame.sprite.Group()
 armorgroup = pygame.sprite.Group()
 backgroup = pygame.sprite.Group()
+# изображения и характеристики объектов
 emptyimg = 'back/empty.png'
 tileimg = {'1': 'tile/ground.png',
            '2': 'tile/wall.png',
@@ -37,6 +40,7 @@ bulletimg = {'z': emptyimg,
              'x': 'bullet/usual.png',
              'w': 'bullet/usual.png',
              'v': 'bullet/vomit.png'}
+# тут характеристика - это скорость, дальность полёта и урон от единичной пули
 bulletspec = {'z': (30, 160, 1),
               't': (30, 200, 1),
               'y': (50, 700, 25),
@@ -45,10 +49,12 @@ bulletspec = {'z': (30, 160, 1),
               'v': (20, 1000, 30)}
 medicineimg = {'+': 'medicine/20.png',
                '*': 'medicine/80.png'}
+# тут информация, на сколько тот или иной вид аптечки лечит игрока
 medicinespec = {'+': (20,),
                 '*': (80,)}
 armorimg = {'}': 'armor/1.25.png',
             '{': 'armor/2.5.png'}
+# на сколько броня защищает игрока
 armorspec = {'}': (1.25,),
              '{': (2.5,)}
 weaponimg = {'z': emptyimg,
@@ -57,8 +63,13 @@ weaponimg = {'z': emptyimg,
              'x': 'weapon/automat.png',
              'w': 'weapon/shotgun.png',
              'v': emptyimg}
-weaponspec = {'z': (support.DUKE, 20, support.NOLIMITWEAPON, 1, 1, 6, 700, 0),
-              't': (support.DUKE, 25, support.NOLIMITWEAPON, 1, 1, 6, 750, 0),
+# тут характеристика - это слот, пуль за выстрел, боезапас,
+# какое добавочное количество выстрелов можно сделать после перезарядки,
+# максимальная ёмкость обоймы, разброс (в градусах),
+# время, которое должно пройти с момента последнего выстрела для повторного действия,
+# аналогично для перезарядки
+weaponspec = {'z': (support.DUKE, 20, support.NOLIMITWEAPON, 2, 2, 6, 700, 0),
+              't': (support.DUKE, 25, support.NOLIMITWEAPON, 2, 2, 6, 750, 0),
               'y': (support.PISTOL, 1, 10, 10, 10, 2, 600, 1000),
               'x': (support.AUTOMAT, 1, 3, 30, 30, 4, 200, 2000),
               'w': (support.SHOTGUN, 12, 7, 1, 7, 6, 800, 600),
@@ -79,6 +90,7 @@ enemyimg = {'a': {support.DUKE: 'enemy/szombie.png',
             support.PISTOL: emptyimg,
             support.AUTOMAT: 'enemy/mutant.png',
             support.SHOTGUN: emptyimg}}
+# здоровье существ
 entityspec = {'@': (100, ('z',)),
               'a': (50, ('z',)),
               'c': (100, ('t',)),
@@ -87,20 +99,23 @@ enemyspeed = {'a': (support.SZDX, support.SZDY),
               'c': (support.LZDX, support.LZDY),
               'b': (support.MDX, support.MDY)}
 backimg = 'back/dungeon.png'
+# карта 1
 level = support.loadLevel(1)
 fonimg = 'back/fon.png'
 ruleimg = 'back/rules.png'
 gamemenuimg = 'back/gamemenu.png'
 statimg = 'back/stat.png'
+# список всех групп спрайтов
 groups = [
         allgroup, wallgroup, herogroup,
     enemygroup, entitygroup, bulletgroup,
     weapongroup, medicinegroup, armorgroup
 ]
+# общее количество врагов на карте 1
 total = len(tuple(filter(lambda x: x in enemyspeed,
                    ''.join(map(lambda x: ''.join(x), level)))))
 
-
+# класс-спрайт для задания объекту дробной координаты
 class FloatSprite(pygame.sprite.Sprite):
     def __init__(self, *args):
         super().__init__(*args)
@@ -120,7 +135,7 @@ class FloatSprite(pygame.sprite.Sprite):
     def __repr__(self):
         return f"{self.__class__.__name__}"
 
-
+# класс поля (для быстрой отрисовки какой-то области карты)
 class Field(FloatSprite):
     def __init__(self, x=0, y=0):
         super().__init__(allgroup)
@@ -153,7 +168,7 @@ class Field(FloatSprite):
     def __repr__(self):
         return super().__repr__() + f"({self.x}, {self.y})"
 
-
+# класс пули
 class Bullet(FloatSprite):
     def __init__(self, x, y, sin, cos, friend, type, dist=0):
         super().__init__(allgroup, bulletgroup)
@@ -215,7 +230,7 @@ class Bullet(FloatSprite):
         return super().__repr__() + f"({self.x}, {self.y}, {self.sin}, {self.cos}, " \
                f"{self.friendtype.__name__}, {self.type}, {self.dist})"
 
-
+# класс оружия
 class Weapon(FloatSprite):
     def __init__(self, x, y, type, ammo=None, nowstore=None, bns=None):
         super().__init__(allgroup, weapongroup)
@@ -334,7 +349,7 @@ class Weapon(FloatSprite):
         self.beforenextshoot = self.reloadtime
         return
 
-
+# класс существ (прародитель классов игрока и врагов)
 class Entity(FloatSprite):
     def __init__(self, x, y, w, h, type, imglist, curslot, health=None, armor=None, weapons=None):
         super().__init__(allgroup, wallgroup, entitygroup)
@@ -505,7 +520,7 @@ class Entity(FloatSprite):
         if key == support.CHANGEKEY:
             self.change(*args)
 
-
+# класс игрока
 class Player(Entity):
     def __init__(self, x, y, health=None, armor=None, weapons=None):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
@@ -544,7 +559,7 @@ class Player(Entity):
             start += 100
         screen.blit(img, (0, screen.get_size()[1] - img.get_size()[1]))
 
-
+# класс врагов
 class Enemy(Entity):
     def __init__(self, x, y, type, health=None, armor=None, weapons=None):
         super().__init__(x, y, support.TILEWIDTH, support.TILEHEIGHT,
@@ -586,7 +601,7 @@ class Enemy(Entity):
         super().shoot(pos)
         self.reload()
 
-
+# класс аптечек
 class Medicine(FloatSprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup, medicinegroup)
@@ -623,7 +638,7 @@ class Medicine(FloatSprite):
         return super().__repr__() + \
                f"({self.x}, {self.y}, {self.type})"
 
-
+# класс бронежилетов
 class Armor(FloatSprite):
     def __init__(self, x, y, type):
         super().__init__(allgroup, armorgroup)
@@ -660,7 +675,7 @@ class Armor(FloatSprite):
         return super().__repr__() +\
                f"({self.x}, {self.y}, {self.type})"
 
-
+# класс фона во время игры
 class Back(FloatSprite):
     def __init__(self):
         super().__init__(backgroup)
@@ -671,7 +686,7 @@ class Back(FloatSprite):
         self.rect.y = 0
         self.setxy()
 
-
+# класс камеры для отрисовки всех динамичных объектов на карте
 class Camera:
     def __init__(self, dx=0, dy=0):
         self.dx = dx
@@ -694,22 +709,31 @@ class Camera:
     def __repr__(self):
         return f"Camera({self.dx}, {self.dy})"
 
-
+# класс для управления событиями игры
 class Shower:
     def __init__(self, levelnum=1):
+        # show=True, пока игра не закрыта
         self.show = True
+        # upd - для анимации (когда upd=0, обновляем модели существ)
         self.upd = 0
+        # заменяем все пути для изображений тайлов на реальные изображения в памяти
         self.setTiles()
+        # пока игрока, камеры, поля нет
         self.player, self.field = None, None
         self.camera = None
+        # состояние - главное меню
         self.sost = support.MENU
+        # действительно ли игрок мёртв в игре
         self.dead = True
+        # фоновое изображение во время игры
         Back()
 
     def newgame(self):
+        # создаём карту, игрока, поле и камеру, игрок жив
         self.player, self.field = generatelevel()
         self.dead = False
         self.camera = Camera()
+        # состояние - непосредственно сам игровой процесс
         self.sost = support.GAME
 
     def setTiles(self):
@@ -717,72 +741,100 @@ class Shower:
             tileimg[type] = support.loadImage(tileimg[type])
 
     def update(self):
+        # если игра заморожена или её нет, ничего не нужно обновлять
         if self.sost != support.GAME:
             return
+        # враги пытаются обнаружить в определённом радиусе игрока
         self.detect()
+        # анимируем персонажей
         self.animate()
+        # обновляем все спрайты
         allgroup.update()
         if self.player.health <= 0:
+            # игрок мёртв - проигрываем крик Вильгельма
             h.play()
             self.dead = True
+            # игрок мёртв
             self.sost = support.GAMEMENU
+            # замораживаем игру
             for sprite in allgroup:
+                # уничтожаем каждый спрайт - удаляем из каждой группы
                 sprite.kill()
+            # теперь нет игрока, поля, камеры
             self.player = None
             self.field = None
             self.camera = None
 
     def savegame(self):
+        # получаем текущее время и сохранем игру
         time = datetime.datetime.now().strftime(
             "%Y_%m_%d_%H_%M_%S"
         )
         savelevel(time)
 
     def stop(self):
+        # прекращаем работу приложения
         self.show = False
 
     def isgoing(self):
+        # дейтсвительно ли нужно продолжать работу приложения
         return self.show
 
     def animate(self):
         if not self.upd:
+            # если upd=0, обновляем модельки существ на карте
             entitygroup.update(support.ANIMATEKEY)
+        # увеличиваем upd на 1 (чтобы через какое-то
+        # время upd снова стало равно 0)
         self.upd += 1
         self.upd %= support.ANIMATEREGULAR
 
     def move(self, dx, dy):
+        # передвигаем игрока в направлении dx по оси OX и dy по оси OY
         herogroup.update(support.MOVEKEY, dx, dy)
 
     def detect(self):
+        # враги пытаются обнаружить игрока и
+        # потом преследовать его и стрелять в героя
         enemygroup.update(support.DETECTKEY, self.player)
 
     def shoot(self, pos):
+        # стрельба игрока
         pos = (pos[0] - self.camera.dx, pos[1] - self.camera.dy)
         herogroup.update(support.SHOOTKEY, pos)
 
     def reload(self):
+        # перезарядка текущего оружия игрока
         herogroup.update(support.RELOADKEY)
 
     def take(self):
+        # игрок пытается подобрать оружие с земли
         herogroup.update(support.TAKEKEY)
 
     def change(self, key):
+        # сменить слот оружия игрока на слот key
         herogroup.update(support.CHANGEKEY, key)
 
     def tryload(self, pos):
+        # попытка загрузить сохранение
+        # список всех сохранений
         saves = sorted(map(lambda x: x.rstrip('.txt').lstrip('data/save/'),
                            os.listdir('data/save')), reverse=True)
+        # y-координаты верхних частей сохранений на экране
         minposy = [50 + 100 * i for i in
                    range(len(os.listdir('data/save')))]
+        # если x-координата левее или правее, чем нужно, ничего не происходит
         if not (100 <= pos[0] <= 450):
             return
-        self.player = None
-        self.camera = None
-        self.field = None
-        for sprite in allgroup:
-            sprite.kill()
+        # проверка, на какое сохранение нажал игрок
         for i in range(len(minposy)):
             if minposy[i] <= pos[1] <= minposy[i] + 50:
+                # как нашли такое сохранение - загружаем его
+                self.player = None
+                self.camera = None
+                self.field = None
+                for sprite in allgroup:
+                    sprite.kill()
                 self.sost = support.GAME
                 self.camera = Camera()
                 self.player, self.field = loadsave(saves[i])
