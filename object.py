@@ -842,15 +842,20 @@ class Shower:
                 return
 
     def back(self):
+        # возврат в главное меню
         self.sost = support.MENU
         self.dead = True
+        # игрок мёртв
         for sprite in allgroup:
             sprite.kill()
+        # "убиваем" каждый спрайт
+        # теперь нет игрока, поля, камеры
         self.player = None
         self.field = None
         self.camera = None
 
     def draw(self, screen):
+        # отрисовываем объекты в зависимости от состояния игры
         backgroup.draw(screen)
         if self.sost == support.GAMEMENU:
             screen.fill('black')
@@ -897,8 +902,10 @@ class Shower:
 
 
 def generatelevel():
+    # создание нового уровня (с нуля)
     player = None
     field = Field()
+    # сначала создаём аптечки и бронежилеты
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in medicineimg:
@@ -909,18 +916,21 @@ def generatelevel():
                 Armor(x * support.TILEWIDTH,
                       y * support.TILEHEIGHT,
                       level[y][x])
+    # затем создаём оружия
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in weaponimg:
                 Weapon(x * support.TILEWIDTH,
                        y * support.TILEHEIGHT,
                        level[y][x])
+    # потом создаём врагов
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] in enemyimg:
                 Enemy(x * support.TILEWIDTH,
                       y * support.TILEHEIGHT,
                       level[y][x])
+    # теперь создаём главного героя
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == support.PLAYERTYPE:
@@ -930,6 +940,7 @@ def generatelevel():
 
 
 def createman(data):
+    # метод для создания объекта по информации о нём
     classname = data[:data.find('(')]
     info = data[data.find('(') + 1: data.rfind(')')]
     if classname == 'Field':
@@ -950,11 +961,14 @@ def createman(data):
 
 
 def loadsave(name):
+    # загрузка сохранения с именем name
     with open('data/save/' + name + '.txt', 'r') as save:
         data = save.read()
     data = data.rstrip('\n').split('\n')
+    # определяем игрока и поле
     player = None
     field = None
+    # создаём по строчке line каждый объект
     for line in data:
         res = createman(line)
         if res[0] == 'PLAYER':
@@ -965,8 +979,11 @@ def loadsave(name):
 
 
 def savelevel(date):
+    # сохраняем текущий прогресс под именем date
     with open('data/save/' + str(date) + '.txt', 'w') as save:
         for sprite in allgroup:
+            # если sprite - не оружие, у которого есть владелец,
+            # добавляем его описание в файл
             if isinstance(sprite, Weapon):
                 if sprite.host is not None:
                     continue
