@@ -820,9 +820,10 @@ class Shower:
         # список всех сохранений
         saves = sorted(map(lambda x: x.rstrip('.txt').lstrip('data/save/'),
                            os.listdir('data/save')), reverse=True)
+        saves.remove('significant')
         # y-координаты верхних частей сохранений на экране
         minposy = [50 + 100 * i for i in
-                   range(len(os.listdir('data/save')))]
+                   range(len(os.listdir('data/save')) - 1)]
         # если x-координата левее или правее, чем нужно, ничего не происходит
         if not (100 <= pos[0] <= 450):
             return
@@ -876,6 +877,7 @@ class Shower:
             font = pygame.font.Font(None, 50)
             savestr = sorted([x.rstrip('.txt').lstrip('data/save/')
                        for x in os.listdir('data/save')], reverse=True)
+            savestr.remove('significant')
             xc = 100
             yc = 50
             for string in savestr:
